@@ -1,30 +1,32 @@
 #Set the path to MPI
-MPI_PATH = 
+MPI_PATH = /usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-rolling-release
 #Use MPI
 HAVE_MPI = yes
 
 #Set the path to Kokkos
-KOKKOS_PATH = /home/crtrott/kokkos
+KOKKOS_PATH = /g/g90/choi18/kokkos
 #Set the Devices to compile for
-KOKKOS_DEVICES=OpenMP
+KOKKOS_DEVICES = Cuda
 #Set the Architecture to compiler for
-KOKKOS_ARCH=SNB
+KOKKOS_ARCH = Volta70
 #Set third party library usage
-KOKKOS_USE_TPL=
+KOKKOS_USE_TPL =
 
-CXXFLAGS = -O3 -g 
-LINKFLAGS = 
+CXXFLAGS = -O3 -g
+LINKFLAGS =
 LIB =
 
 ifeq ($(HAVE_MPI), yes)
-CXX = mpicxx
+CXX = $(KOKKOS_PATH)/bin/nvcc_wrapper
+override CXXFLAGS += -I$(MPI_PATH)/include
+LINK = mpicxx
 else
 CXX = g++
 override CXXFLAGS += -I./MPI-Stubs
+LINK = ${CXX}
 LIB += MPI-Stubs/libmpi_stubs.a
 endif
 
-LINK = ${CXX}
 EXE = miniMD
 
 #CXXFLAGS += -DTEST_LAMBDA_BYCOPY
@@ -32,8 +34,8 @@ EXE = miniMD
 
 #Check for single precision
 ifeq ($(SP), yes)
-override CXXFLAGS += -DPRECISION=1 
-LINKFLAGS += -DPRECISION=1 
+override CXXFLAGS += -DPRECISION=1
+LINKFLAGS += -DPRECISION=1
 else
 CXXFLAGS += -DPRECISION=2
 LINKFLAGS += -DPRECISION=2
@@ -41,8 +43,8 @@ endif
 
 #Check if debug on
 ifeq ($(DEBUG), yes)
-override CXXFLAGS += -g -G 
-LINKFLAGS += -g 
+override CXXFLAGS += -g -G
+LINKFLAGS += -g
 endif
 
 
@@ -54,10 +56,10 @@ endif
 
 #Check for PAD
 ifeq ($(PAD), 3)
-override CXXFLAGS += -DPAD3 
+override CXXFLAGS += -DPAD3
 endif
 ifeq ($(PAD), 4)
-override CXXFLAGS += -DPAD4 
+override CXXFLAGS += -DPAD4
 endif
 
 #Check for use of explicit SIMD pragma
@@ -67,7 +69,7 @@ endif
 
 #Check for request of ANSI_ALIAS
 ifeq ($(ANSI_ALIAS), yes)
-override CXXFLAGS += -ansi-alias 
+override CXXFLAGS += -ansi-alias
 endif
 
 
