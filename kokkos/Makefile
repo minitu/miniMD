@@ -8,7 +8,7 @@ KOKKOS_PATH = /g/g90/choi18/kokkos
 #Set the Devices to compile for
 KOKKOS_DEVICES = Cuda
 #Set the Architecture to compiler for
-KOKKOS_ARCH = Volta70
+KOKKOS_ARCH = Power9,Volta70
 #Set third party library usage
 KOKKOS_USE_TPL =
 
