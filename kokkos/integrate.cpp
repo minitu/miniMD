@@ -34,6 +34,10 @@
 #include "integrate.h"
 #include "math.h"
 
+#ifdef DUMPI_TRACE
+#include <dumpi/libdumpi/libdumpi.h>
+#endif
+
 Integrate::Integrate() {sort_every=20;}
 Integrate::~Integrate() {}
 
@@ -83,6 +87,10 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
   dtforce = dtforce / mass;
 
     int next_sort = sort_every>0?sort_every:ntimes+1;
+
+#ifdef DUMPI_TRACE
+    libdumpi_enable_profiling();
+#endif
 
     for(n = 0; n < ntimes; n++) {
 
@@ -183,4 +191,8 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, timer, comm);
     }
+
+#ifdef DUMPI_TRACE
+    libdumpi_disable_profiling();
+#endif
 }

@@ -4,7 +4,7 @@ MPI_PATH = /usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-rolling-release
 HAVE_MPI = yes
 
 #Set the path to Kokkos
-KOKKOS_PATH = /g/g90/choi18/kokkos
+KOKKOS_PATH = $(HOME)/kokkos
 #Set the Devices to compile for
 KOKKOS_DEVICES = Cuda
 #Set the Architecture to compiler for
@@ -12,9 +12,9 @@ KOKKOS_ARCH = Power9,Volta70
 #Set third party library usage
 KOKKOS_USE_TPL =
 
-CXXFLAGS = -O3 -g
+CXXFLAGS = -O3 -g -DDUMPI_TRACE -I$(HPM_PATH)/sst-dumpi/install/include
 LINKFLAGS =
-LIB =
+LIB = -L$(HPM_PATH)/sst-dumpi/install/lib -ldumpi
 
 ifeq ($(HAVE_MPI), yes)
 CXX = $(KOKKOS_PATH)/bin/nvcc_wrapper
