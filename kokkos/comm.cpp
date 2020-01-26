@@ -143,6 +143,8 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   atom.box.zlo = myloc[2] * prd[2] / procgrid[2];
   atom.box.zhi = (myloc[2] + 1) * prd[2] / procgrid[2];
 
+  printf("[Rank %d] xlo: %lf, xhi: %lf, ylo: %lf, yhi: %lf, zlo: %lf, zhi: %lf\n", me, atom.box.xlo, atom.box.xhi, atom.box.ylo, atom.box.yhi, atom.box.zlo, atom.box.zhi);
+
   /* need = # of boxes I need atoms from in each dimension */
 
   need[0] = static_cast<int>(cutneigh * procgrid[0] / prd[0] + 1);
