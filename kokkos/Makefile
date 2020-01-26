@@ -1,5 +1,5 @@
 #Set the path to MPI
-MPI_PATH = /usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-rolling-release
+MPI_PATH = $(MPI_ROOT)
 #Use MPI
 HAVE_MPI = yes
 
@@ -12,9 +12,9 @@ KOKKOS_ARCH = Power9,Volta70
 #Set third party library usage
 KOKKOS_USE_TPL =
 
-CXXFLAGS = -O3 -g -DDUMPI_TRACE -I$(HPM_PATH)/sst-dumpi/install/include
+CXXFLAGS = -O3 -g #-DDUMPI_TRACE -I$(HPM_PATH)/sst-dumpi/install/include
 LINKFLAGS =
-LIB = -L$(HPM_PATH)/sst-dumpi/install/lib -ldumpi
+LIB = #-L$(HPM_PATH)/sst-dumpi/install/lib -ldumpi
 
 ifeq ($(HAVE_MPI), yes)
 CXX = $(KOKKOS_PATH)/bin/nvcc_wrapper
