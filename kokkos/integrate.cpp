@@ -38,6 +38,8 @@
 #include <dumpi/libdumpi/libdumpi.h>
 #endif
 
+#include <cuda_profiler_api.h>
+
 Integrate::Integrate() {sort_every=20;}
 Integrate::~Integrate() {}
 
@@ -91,6 +93,9 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 #ifdef DUMPI_TRACE
     libdumpi_enable_profiling();
 #endif
+
+    // Start CUDA profiler
+    cudaProfilerStart();
 
     for(n = 0; n < ntimes; n++) {
 
@@ -191,6 +196,9 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, timer, comm);
     }
+
+    // Stop CUDA profiling
+    cudaProfilerStop();
 
 #ifdef DUMPI_TRACE
     libdumpi_disable_profiling();
