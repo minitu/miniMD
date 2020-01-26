@@ -69,7 +69,6 @@ class Atom
     x_host_view_type h_v;
     x_host_view_type h_f;
 
-
     int ntypes;
     int_1d_view_type type, new_type, old_type;
     int_1d_host_view_type h_type;

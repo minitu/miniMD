@@ -38,6 +38,12 @@
 
 #define DELTA 20000
 
+int pack_comm_count = 0;
+int unpack_comm_count = 0;
+int pack_comm_self_count = 0;
+int pack_reverse_count = 0;
+int unpack_reverse_count = 0;
+
 Atom::Atom(int ntypes_)
 {
   natoms = 0;
@@ -107,6 +113,7 @@ void Atom::pbc()
 
 void Atom::pack_comm(int n, int_1d_view_type list_in, float_1d_view_type buf_in, int* pbc_flags_in)
 {
+  pack_comm_count++;
   list = list_in;
   buf = buf_in;
   for(int i = 0; i < 4; i++) pbc_flags[i] = pbc_flags_in[i];
@@ -120,6 +127,7 @@ void Atom::pack_comm(int n, int_1d_view_type list_in, float_1d_view_type buf_in,
 
 void Atom::unpack_comm(int n, int first_in, float_1d_view_type buf_in)
 {
+  unpack_comm_count++;
   first = first_in;
   buf = buf_in;
   Kokkos::parallel_for(Kokkos::RangePolicy<TagAtomUnpackComm>(0,n), *this);
@@ -127,6 +135,7 @@ void Atom::unpack_comm(int n, int first_in, float_1d_view_type buf_in)
 
 void Atom::pack_comm_self(int n, int_1d_view_type list_in, int first_in, int* pbc_flags_in)
 {
+  pack_comm_self_count++;
   list = list_in;
   first = first_in;
   for(int i = 0; i < 4; i++) pbc_flags[i] = pbc_flags_in[i];
@@ -140,6 +149,7 @@ void Atom::pack_comm_self(int n, int_1d_view_type list_in, int first_in, int* pb
 
 void Atom::pack_reverse(int n, int first_in, float_1d_view_type buf_in)
 {
+  pack_reverse_count++;
   first = first_in;
   buf = buf_in;
   Kokkos::parallel_for(Kokkos::RangePolicy<TagAtomPackReverse>(0,n), *this);
@@ -147,6 +157,7 @@ void Atom::pack_reverse(int n, int first_in, float_1d_view_type buf_in)
 
 void Atom::unpack_reverse(int n, int_1d_view_type list_in, float_1d_view_type buf_in)
 {
+  unpack_reverse_count++;
   list = list_in;
   buf = buf_in;
   Kokkos::parallel_for(Kokkos::RangePolicy<TagAtomUnpackReverse>(0,n), *this);

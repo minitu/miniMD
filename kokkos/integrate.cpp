@@ -33,12 +33,19 @@
 #include "stdio.h"
 #include "integrate.h"
 #include "math.h"
+#include "mpi.h"
 
 #ifdef DUMPI_TRACE
 #include <dumpi/libdumpi/libdumpi.h>
 #endif
 
 #include <cuda_profiler_api.h>
+
+extern int pack_comm_count;
+extern int unpack_comm_count;
+extern int pack_comm_self_count;
+extern int pack_reverse_count;
+extern int unpack_reverse_count;
 
 Integrate::Integrate() {sort_every=20;}
 Integrate::~Integrate() {}
@@ -196,6 +203,11 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, timer, comm);
     }
+
+    int me;
+    MPI_Comm_rank(MPI_COMM_WORLD, &me);
+
+    printf("[Rank %d, Atom] pack_comm: %d, unpack_comm: %d, pack_comm_self: %d, pack_reverse: %d, unpack_reverse: %d\n", me, pack_comm_count, unpack_comm_count, pack_comm_self_count, pack_reverse_count, unpack_reverse_count);
 
     // Stop CUDA profiling
     cudaProfilerStop();
