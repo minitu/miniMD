@@ -1,0 +1,108 @@
+[Rank 1] xlo: 0.000000, xhi: 107.494156, ylo: 0.000000, yhi: 107.494156, zlo: 107.494156, zhi: 214.988312
+[Rank 25] xlo: 322.482469, xhi: 429.976625, ylo: 0.000000, yhi: 107.494156, zlo: 107.494156, zhi: 214.988312
+[Rank 24] xlo: 322.482469, xhi: 429.976625, ylo: 0.000000, yhi: 107.494156, zlo: 0.000000, zhi: 107.494156
+[Rank 29] xlo: 322.482469, xhi: 429.976625, ylo: 214.988312, yhi: 322.482469, zlo: 107.494156, zhi: 214.988312
+[Rank 6] xlo: 0.000000, xhi: 107.494156, ylo: 322.482469, yhi: 429.976625, zlo: 0.000000, zhi: 107.494156
+[Rank 7] xlo: 0.000000, xhi: 107.494156, ylo: 322.482469, yhi: 429.976625, zlo: 107.494156, zhi: 214.988312
+[Rank 4] xlo: 0.000000, xhi: 107.494156, ylo: 214.988312, yhi: 322.482469, zlo: 0.000000, zhi: 107.494156
+[Rank 5] xlo: 0.000000, xhi: 107.494156, ylo: 214.988312, yhi: 322.482469, zlo: 107.494156, zhi: 214.988312
+[Rank 31] xlo: 322.482469, xhi: 429.976625, ylo: 322.482469, yhi: 429.976625, zlo: 107.494156, zhi: 214.988312
+[Rank 28] xlo: 322.482469, xhi: 429.976625, ylo: 214.988312, yhi: 322.482469, zlo: 0.000000, zhi: 107.494156
+[Rank 30] xlo: 322.482469, xhi: 429.976625, ylo: 322.482469, yhi: 429.976625, zlo: 0.000000, zhi: 107.494156
+[Rank 18] xlo: 214.988312, xhi: 322.482469, ylo: 107.494156, yhi: 214.988312, zlo: 0.000000, zhi: 107.494156
+[Rank 19] xlo: 214.988312, xhi: 322.482469, ylo: 107.494156, yhi: 214.988312, zlo: 107.494156, zhi: 214.988312
+[Rank 16] xlo: 214.988312, xhi: 322.482469, ylo: 0.000000, yhi: 107.494156, zlo: 0.000000, zhi: 107.494156
+# Create System:
+[Rank 0] xlo: 0.000000, xhi: 107.494156, ylo: 0.000000, yhi: 107.494156, zlo: 0.000000, zhi: 107.494156
+# Done .... 
+# miniMD-Reference 1.2 (MPI+OpenMP) output ...
+# Run Settings: 
+	# MPI processes: 32
+	# Host Threads: 1
+	# Inputfile: in.lj.miniMD
+	# Datafile: None
+# Physics Settings: 
+	# ForceStyle: LJ
+	# Force Parameters: 1.00 1.00
+	# Units: LJ
+	# Atoms: 33554432
+	# Atom types: 8
+	# System size: 429.98 429.98 214.99 (unit cells: 256 256 128)
+	# Density: 0.844200
+	# Force cutoff: 2.500000
+	# Timestep size: 0.005000
+# Technical Settings: 
+	# Neigh cutoff: 2.800000
+	# Half neighborlists: 1
+	# Team neighborlist construction: 0
+	# Neighbor bins: 153 153 76
+	# Neighbor frequency: 1000
+	# Sorting frequency: 1000
+	# Thermo frequency: 100
+	# Ghost Newton: 1
+	# Use intrinsics: 0
+	# Do safe exchange: 0
+	# Size of float: 8
+
+[Rank 27] xlo: 322.482469, xhi: 429.976625, ylo: 107.494156, yhi: 214.988312, zlo: 107.494156, zhi: 214.988312
+[Rank 17] xlo: 214.988312, xhi: 322.482469, ylo: 0.000000, yhi: 107.494156, zlo: 107.494156, zhi: 214.988312
+[Rank 8] xlo: 107.494156, xhi: 214.988312, ylo: 0.000000, yhi: 107.494156, zlo: 0.000000, zhi: 107.494156
+[Rank 26] xlo: 322.482469, xhi: 429.976625, ylo: 107.494156, yhi: 214.988312, zlo: 0.000000, zhi: 107.494156
+[Rank 3] xlo: 0.000000, xhi: 107.494156, ylo: 107.494156, yhi: 214.988312, zlo: 107.494156, zhi: 214.988312
+[Rank 2] xlo: 0.000000, xhi: 107.494156, ylo: 107.494156, yhi: 214.988312, zlo: 0.000000, zhi: 107.494156
+[Rank 15] xlo: 107.494156, xhi: 214.988312, ylo: 322.482469, yhi: 429.976625, zlo: 107.494156, zhi: 214.988312
+[Rank 13] xlo: 107.494156, xhi: 214.988312, ylo: 214.988312, yhi: 322.482469, zlo: 107.494156, zhi: 214.988312
+[Rank 9] xlo: 107.494156, xhi: 214.988312, ylo: 0.000000, yhi: 107.494156, zlo: 107.494156, zhi: 214.988312
+[Rank 14] xlo: 107.494156, xhi: 214.988312, ylo: 322.482469, yhi: 429.976625, zlo: 0.000000, zhi: 107.494156
+[Rank 12] xlo: 107.494156, xhi: 214.988312, ylo: 214.988312, yhi: 322.482469, zlo: 0.000000, zhi: 107.494156
+[Rank 20] xlo: 214.988312, xhi: 322.482469, ylo: 214.988312, yhi: 322.482469, zlo: 0.000000, zhi: 107.494156
+[Rank 21] xlo: 214.988312, xhi: 322.482469, ylo: 214.988312, yhi: 322.482469, zlo: 107.494156, zhi: 214.988312
+[Rank 11] xlo: 107.494156, xhi: 214.988312, ylo: 107.494156, yhi: 214.988312, zlo: 107.494156, zhi: 214.988312
+[Rank 10] xlo: 107.494156, xhi: 214.988312, ylo: 107.494156, yhi: 214.988312, zlo: 0.000000, zhi: 107.494156
+[Rank 23] xlo: 214.988312, xhi: 322.482469, ylo: 322.482469, yhi: 429.976625, zlo: 107.494156, zhi: 214.988312
+[Rank 22] xlo: 214.988312, xhi: 322.482469, ylo: 322.482469, yhi: 429.976625, zlo: 0.000000, zhi: 107.494156
+# Starting dynamics ...
+# Timestep T U P Time
+0 1.440000e+00 -6.773368e+00 -5.019669e+00  0.000
+100 8.102448e-01 -5.834690e+00 5.059590e-02  0.783
+[Atom] pack_comm: 600, unpack_comm: 600, pack_comm_self: 0, pack_reverse: 606, unpack_reverse: 606
+[Rank 0] inte[0]: 206.119, comm[0]: 217.856, comm[1]: 1403.052, comm[2]: 217.483, force: 2898.306, rev_comm[0]: 209.582, rev_comm[1]: 1380.874, rev_comm[2]: 237.670, inte[1]: 141.031
+[Rank 1] inte[0]: 207.619, comm[0]: 217.716, comm[1]: 1447.703, comm[2]: 217.472, force: 2878.945, rev_comm[0]: 210.222, rev_comm[1]: 1418.611, rev_comm[2]: 235.470, inte[1]: 140.754
+[Rank 2] inte[0]: 206.071, comm[0]: 218.956, comm[1]: 1390.506, comm[2]: 219.143, force: 2831.482, rev_comm[0]: 211.803, rev_comm[1]: 1418.969, rev_comm[2]: 238.566, inte[1]: 140.540
+[Rank 3] inte[0]: 204.651, comm[0]: 217.451, comm[1]: 1418.620, comm[2]: 218.541, force: 2855.008, rev_comm[0]: 211.439, rev_comm[1]: 1445.184, rev_comm[2]: 239.048, inte[1]: 140.255
+[Rank 4] inte[0]: 207.960, comm[0]: 218.264, comm[1]: 1385.783, comm[2]: 220.408, force: 2893.262, rev_comm[0]: 210.984, rev_comm[1]: 1465.326, rev_comm[2]: 239.217, inte[1]: 141.516
+[Rank 5] inte[0]: 206.588, comm[0]: 218.580, comm[1]: 1412.046, comm[2]: 218.970, force: 2889.451, rev_comm[0]: 211.750, rev_comm[1]: 1491.189, rev_comm[2]: 237.932, inte[1]: 140.671
+[Rank 6] inte[0]: 206.116, comm[0]: 220.936, comm[1]: 1422.034, comm[2]: 221.137, force: 2900.510, rev_comm[0]: 213.457, rev_comm[1]: 1441.055, rev_comm[2]: 241.844, inte[1]: 141.580
+[Rank 7] inte[0]: 206.155, comm[0]: 218.215, comm[1]: 1443.138, comm[2]: 219.739, force: 2848.254, rev_comm[0]: 210.395, rev_comm[1]: 1464.983, rev_comm[2]: 239.580, inte[1]: 141.118
+[Rank 8] inte[0]: 207.552, comm[0]: 217.112, comm[1]: 1328.959, comm[2]: 219.388, force: 2829.247, rev_comm[0]: 210.278, rev_comm[1]: 1350.798, rev_comm[2]: 238.096, inte[1]: 140.743
+[Rank 9] inte[0]: 206.038, comm[0]: 216.675, comm[1]: 1368.113, comm[2]: 218.200, force: 2856.228, rev_comm[0]: 211.130, rev_comm[1]: 1381.052, rev_comm[2]: 236.653, inte[1]: 139.669
+[Rank 10] inte[0]: 206.403, comm[0]: 219.176, comm[1]: 1370.371, comm[2]: 219.701, force: 2809.427, rev_comm[0]: 212.471, rev_comm[1]: 1345.833, rev_comm[2]: 241.713, inte[1]: 140.134
+[Rank 11] inte[0]: 206.700, comm[0]: 218.253, comm[1]: 1387.975, comm[2]: 219.184, force: 2855.309, rev_comm[0]: 212.113, rev_comm[1]: 1366.068, rev_comm[2]: 240.347, inte[1]: 140.832
+[Rank 12] inte[0]: 207.032, comm[0]: 217.119, comm[1]: 1547.933, comm[2]: 217.627, force: 2827.378, rev_comm[0]: 210.404, rev_comm[1]: 1515.948, rev_comm[2]: 236.269, inte[1]: 140.065
+[Rank 13] inte[0]: 206.537, comm[0]: 216.576, comm[1]: 1582.288, comm[2]: 217.661, force: 2852.778, rev_comm[0]: 210.494, rev_comm[1]: 1560.660, rev_comm[2]: 236.082, inte[1]: 140.788
+[Rank 14] inte[0]: 205.146, comm[0]: 219.880, comm[1]: 1531.063, comm[2]: 220.196, force: 2850.733, rev_comm[0]: 211.965, rev_comm[1]: 1551.624, rev_comm[2]: 241.026, inte[1]: 140.775
+[Rank 15] inte[0]: 205.757, comm[0]: 216.529, comm[1]: 1563.444, comm[2]: 217.589, force: 2859.315, rev_comm[0]: 210.026, rev_comm[1]: 1573.219, rev_comm[2]: 238.569, inte[1]: 140.323
+[Rank 16] inte[0]: 206.035, comm[0]: 218.769, comm[1]: 1133.723, comm[2]: 220.136, force: 2899.031, rev_comm[0]: 211.987, rev_comm[1]: 1140.764, rev_comm[2]: 238.943, inte[1]: 141.125
+[Rank 17] inte[0]: 205.820, comm[0]: 217.876, comm[1]: 1172.663, comm[2]: 218.585, force: 2833.495, rev_comm[0]: 211.992, rev_comm[1]: 1178.699, rev_comm[2]: 236.343, inte[1]: 139.686
+[Rank 18] inte[0]: 205.364, comm[0]: 221.429, comm[1]: 1151.816, comm[2]: 220.831, force: 2899.859, rev_comm[0]: 214.014, rev_comm[1]: 1157.238, rev_comm[2]: 241.376, inte[1]: 141.822
+[Rank 19] inte[0]: 205.889, comm[0]: 218.757, comm[1]: 1173.863, comm[2]: 218.862, force: 2830.422, rev_comm[0]: 213.282, rev_comm[1]: 1177.849, rev_comm[2]: 241.020, inte[1]: 140.333
+[Rank 20] inte[0]: 206.787, comm[0]: 220.298, comm[1]: 1279.939, comm[2]: 220.676, force: 2852.890, rev_comm[0]: 213.635, rev_comm[1]: 1267.573, rev_comm[2]: 238.582, inte[1]: 140.603
+[Rank 21] inte[0]: 206.084, comm[0]: 218.293, comm[1]: 1330.655, comm[2]: 219.038, force: 2843.217, rev_comm[0]: 212.888, rev_comm[1]: 1314.858, rev_comm[2]: 238.091, inte[1]: 140.838
+[Rank 22] inte[0]: 206.105, comm[0]: 220.167, comm[1]: 1295.666, comm[2]: 219.904, force: 2856.947, rev_comm[0]: 212.876, rev_comm[1]: 1284.051, rev_comm[2]: 241.448, inte[1]: 141.340
+[Rank 23] inte[0]: 205.044, comm[0]: 217.370, comm[1]: 1327.761, comm[2]: 218.580, force: 2852.160, rev_comm[0]: 210.969, rev_comm[1]: 1313.864, rev_comm[2]: 239.294, inte[1]: 140.217
+[Rank 24] inte[0]: 206.608, comm[0]: 224.419, comm[1]: 1203.907, comm[2]: 224.176, force: 2876.082, rev_comm[0]: 216.915, rev_comm[1]: 1211.820, rev_comm[2]: 243.621, inte[1]: 141.213
+[Rank 25] inte[0]: 205.629, comm[0]: 218.099, comm[1]: 1243.288, comm[2]: 218.475, force: 2886.953, rev_comm[0]: 210.480, rev_comm[1]: 1245.009, rev_comm[2]: 237.403, inte[1]: 140.777
+[Rank 26] inte[0]: 206.175, comm[0]: 221.109, comm[1]: 1214.539, comm[2]: 222.225, force: 2908.798, rev_comm[0]: 214.448, rev_comm[1]: 1222.475, rev_comm[2]: 242.509, inte[1]: 141.641
+[Rank 27] inte[0]: 206.960, comm[0]: 218.484, comm[1]: 1240.770, comm[2]: 219.411, force: 2845.753, rev_comm[0]: 211.654, rev_comm[1]: 1246.211, rev_comm[2]: 239.094, inte[1]: 140.814
+[Rank 28] inte[0]: 206.067, comm[0]: 216.405, comm[1]: 1152.239, comm[2]: 218.790, force: 2838.193, rev_comm[0]: 210.054, rev_comm[1]: 1215.614, rev_comm[2]: 236.914, inte[1]: 140.431
+[Rank 29] inte[0]: 206.876, comm[0]: 216.007, comm[1]: 1180.502, comm[2]: 217.544, force: 2864.895, rev_comm[0]: 210.019, rev_comm[1]: 1235.423, rev_comm[2]: 236.186, inte[1]: 140.416
+[Rank 30] inte[0]: 206.173, comm[0]: 218.336, comm[1]: 1171.512, comm[2]: 219.540, force: 2861.732, rev_comm[0]: 211.685, rev_comm[1]: 1218.524, rev_comm[2]: 240.685, inte[1]: 140.240
+[Rank 31] inte[0]: 206.617, comm[0]: 218.222, comm[1]: 1181.056, comm[2]: 218.580, force: 2888.067, rev_comm[0]: 211.202, rev_comm[1]: 1233.632, rev_comm[2]: 239.439, inte[1]: 141.223
+[Max rank 13] inte[0]: 206.537, comm[0]: 216.576, comm[1]: 1582.288, comm[2]: 217.661, force: 2852.778, rev_comm[0]: 210.494, rev_comm[1]: 1560.660, rev_comm[2]: 236.082, inte[1]: 140.788
+
+
+# Performance Summary:
+# MPI_proc OMP_threads nsteps natoms t_total t_force t_neigh t_comm t_other performance perf/thread grep_string t_extra
+32 1 100 33554432 0.783126 0.289897 0.000000 0.456608 0.036621 4284676679.017828 133896146.219307 PERF_SUMMARY 0.000000
+
+
