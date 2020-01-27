@@ -123,6 +123,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       start_time = MPI_Wtime();
       initialIntegrate();
+      Kokkos::fence();
       integrate_times[0] += MPI_Wtime() - start_time;
 
       timer.stamp();
@@ -193,6 +194,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       force->evflag = (n + 1) % thermo.nstat == 0;
       start_time = MPI_Wtime();
       force->compute(atom, neighbor, comm, comm.me);
+      Kokkos::fence();
       force_time += MPI_Wtime() - start_time;
       Kokkos::Profiling::popRegion();
 
@@ -212,6 +214,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       start_time = MPI_Wtime();
       finalIntegrate();
+      Kokkos::fence();
       integrate_times[1] += MPI_Wtime() - start_time;
 
       if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, timer, comm);
