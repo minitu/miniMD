@@ -302,6 +302,9 @@ void Comm::communicate(Atom &atom)
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
+      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
+
       start_time = MPI_Wtime();
       if(sizeof(MMD_float) == 4) {
         MPI_Irecv(buf_recv.data(), comm_recv_size[iswap], MPI_FLOAT,
@@ -359,6 +362,9 @@ void Comm::reverse_communicate(Atom &atom)
 
     /* exchange with another proc
        if self, set recv buffer to send buffer */
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     start_time = MPI_Wtime();
     if(sendproc[iswap] != me) {
