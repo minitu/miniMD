@@ -47,6 +47,10 @@ extern int pack_comm_self_count;
 extern int pack_reverse_count;
 extern int unpack_reverse_count;
 
+double force_time;
+extern double comm_times[3];
+extern double rev_comm_times[3];
+
 Integrate::Integrate() {sort_every=20;}
 Integrate::~Integrate() {}
 
@@ -182,7 +186,9 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       Kokkos::Profiling::pushRegion("force");
       force->evflag = (n + 1) % thermo.nstat == 0;
+      double start_time = MPI_Wtime();
       force->compute(atom, neighbor, comm, comm.me);
+      force_time += MPI_Wtime() - start_time;
       Kokkos::Profiling::popRegion();
 
       timer.stamp(TIME_FORCE);
@@ -204,10 +210,41 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, timer, comm);
     }
 
-    int me;
-    MPI_Comm_rank(MPI_COMM_WORLD, &me);
+    int world_size;
+    int rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    printf("[Rank %d, Atom] pack_comm: %d, unpack_comm: %d, pack_comm_self: %d, pack_reverse: %d, unpack_reverse: %d\n", me, pack_comm_count, unpack_comm_count, pack_comm_self_count, pack_reverse_count, unpack_reverse_count);
+    if (rank == 0) {
+      printf("[Atom] pack_comm: %d, unpack_comm: %d, pack_comm_self: %d, pack_reverse: %d, unpack_reverse: %d\n",
+          pack_comm_count, unpack_comm_count, pack_comm_self_count, pack_reverse_count, unpack_reverse_count);
+    }
+
+    double* g_comm_times = (double*)malloc(sizeof(double) * 3 * world_size);
+    double* g_rev_comm_times = (double*)malloc(sizeof(double) * 3 * world_size);
+    double* g_force_times = (double*)malloc(sizeof(double) * world_size);
+    MPI_Gather(comm_times, 3, MPI_DOUBLE, g_comm_times, 3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gather(rev_comm_times, 3, MPI_DOUBLE, g_rev_comm_times, 3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gather(&force_time, 1, MPI_DOUBLE, g_force_times, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+      double max_comm_time = 0;
+      int max_rank;
+
+      for (int i = 0; i < world_size; i++) {
+        if (g_comm_times[3*i+1] > max_comm_time) {
+          max_rank = i;
+          max_comm_time = g_comm_times[3*i+1];
+        }
+        printf("[Rank %d] comm[0]: %.3lf, comm[1]: %.3lf, comm[2]: %.3lf, force: %.3lf, rev_comm[0]: %.3lf, rev_comm[1]: %.3lf, rev_comm[2]: %.3lf\n",
+            i, g_comm_times[3*i] * 1000000, g_comm_times[3*i+1] * 1000000, g_comm_times[3*i+2] * 1000000,
+            g_force_times[i] * 1000000, g_rev_comm_times[3*i] * 1000000, g_rev_comm_times[3*i+1] * 1000000, g_rev_comm_times[3*i+2] * 1000000);
+      }
+
+      printf("[Max rank %d] comm[0]: %.3lf, comm[1]: %.3lf, comm[2]: %.3lf, force: %.3lf, rev_comm[0]: %.3lf, rev_comm[1]: %.3lf, rev_comm[2]: %.3lf\n",
+          max_rank, g_comm_times[3*max_rank] * 1000000, g_comm_times[3*max_rank+1] * 1000000, g_comm_times[3*max_rank+2] * 1000000,
+          g_force_times[max_rank] * 1000000, g_rev_comm_times[3*max_rank] * 1000000, g_rev_comm_times[3*max_rank+1] * 1000000, g_rev_comm_times[3*max_rank+2] * 1000000);
+    }
 
     // Stop CUDA profiling
     cudaProfilerStop();
