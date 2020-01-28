@@ -284,6 +284,14 @@ void Comm::communicate(Atom &atom)
   MPI_Status statuses[2];
   double start_time;
 
+#ifdef K_MODE
+  static int total_count = 0;
+  static int remote_count = 0;
+  static int node_size = 4;
+  static int my_node = me / node_size;
+  static int iter = 0;
+#endif
+
   for(iswap = 0; iswap < nswap; iswap++) {
 
     /* pack buffer */
@@ -304,6 +312,12 @@ void Comm::communicate(Atom &atom)
 
       MPI_Barrier(MPI_COMM_WORLD);
       MPI_Barrier(MPI_COMM_WORLD);
+
+#ifdef K_MODE
+      total_count++;
+      int other_node = sendproc[iswap] / node_size;
+      if (other_node != my_node) remote_count++;
+#endif
 
       start_time = MPI_Wtime();
       if(sizeof(MMD_float) == 4) {
@@ -334,6 +348,10 @@ void Comm::communicate(Atom &atom)
       comm_times[0] += MPI_Wtime() - start_time;
     }
   }
+
+#ifdef K_MODE
+  if (++iter == 100) printf("[K - Rank %d] K: %d/%d\n", me, remote_count, total_count);
+#endif
 
   Kokkos::Profiling::popRegion();
 }
