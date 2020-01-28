@@ -1,0 +1,60 @@
+[Rank 7] xlo: 107.494156, xhi: 214.988312, ylo: 107.494156, yhi: 214.988312, zlo: 107.494156, zhi: 214.988312
+[Rank 6] xlo: 107.494156, xhi: 214.988312, ylo: 107.494156, yhi: 214.988312, zlo: 0.000000, zhi: 107.494156
+[Rank 5] xlo: 107.494156, xhi: 214.988312, ylo: 0.000000, yhi: 107.494156, zlo: 107.494156, zhi: 214.988312
+[Rank 4] xlo: 107.494156, xhi: 214.988312, ylo: 0.000000, yhi: 107.494156, zlo: 0.000000, zhi: 107.494156
+[Rank 1] xlo: 0.000000, xhi: 107.494156, ylo: 0.000000, yhi: 107.494156, zlo: 107.494156, zhi: 214.988312
+# Create System:
+[Rank 0] xlo: 0.000000, xhi: 107.494156, ylo: 0.000000, yhi: 107.494156, zlo: 0.000000, zhi: 107.494156
+# Done .... 
+# miniMD-Reference 1.2 (MPI+OpenMP) output ...
+# Run Settings: 
+	# MPI processes: 8
+	# Host Threads: 1
+	# Inputfile: in.lj.miniMD
+	# Datafile: None
+# Physics Settings: 
+	# ForceStyle: LJ
+	# Force Parameters: 1.00 1.00
+	# Units: LJ
+	# Atoms: 8388608
+	# Atom types: 8
+	# System size: 214.99 214.99 214.99 (unit cells: 128 128 128)
+	# Density: 0.844200
+	# Force cutoff: 2.500000
+	# Timestep size: 0.005000
+# Technical Settings: 
+	# Neigh cutoff: 2.800000
+	# Half neighborlists: 1
+	# Team neighborlist construction: 0
+	# Neighbor bins: 76 76 76
+	# Neighbor frequency: 1000
+	# Sorting frequency: 1000
+	# Thermo frequency: 100
+	# Ghost Newton: 1
+	# Use intrinsics: 0
+	# Do safe exchange: 0
+	# Size of float: 8
+
+[Rank 2] xlo: 0.000000, xhi: 107.494156, ylo: 107.494156, yhi: 214.988312, zlo: 0.000000, zhi: 107.494156
+[Rank 3] xlo: 0.000000, xhi: 107.494156, ylo: 107.494156, yhi: 214.988312, zlo: 107.494156, zhi: 214.988312
+# Starting dynamics ...
+# Timestep T U P Time
+0 1.440000e+00 -6.773368e+00 -5.019669e+00  0.000
+100 7.604485e-01 -5.763730e+00 1.092286e-01  0.576
+[Atom] pack_comm: 600, unpack_comm: 600, pack_comm_self: 0, pack_reverse: 606, unpack_reverse: 606
+[Rank 0] inte[0]: 205.532, comm[0]: 206.222, comm[1]: 281.841, comm[2]: 205.616, force: 2724.439, rev_comm[0]: 199.329, rev_comm[1]: 286.214, rev_comm[2]: 226.852, inte[1]: 137.596
+[Rank 1] inte[0]: 204.237, comm[0]: 207.524, comm[1]: 314.233, comm[2]: 204.845, force: 2739.753, rev_comm[0]: 201.232, rev_comm[1]: 318.652, rev_comm[2]: 226.002, inte[1]: 138.471
+[Rank 2] inte[0]: 204.084, comm[0]: 190.329, comm[1]: 553.019, comm[2]: 188.177, force: 2727.668, rev_comm[0]: 183.758, rev_comm[1]: 560.369, rev_comm[2]: 210.089, inte[1]: 135.895
+[Rank 3] inte[0]: 203.654, comm[0]: 196.343, comm[1]: 591.490, comm[2]: 195.460, force: 2727.993, rev_comm[0]: 194.073, rev_comm[1]: 602.309, rev_comm[2]: 218.671, inte[1]: 137.599
+[Rank 4] inte[0]: 205.129, comm[0]: 200.050, comm[1]: 598.296, comm[2]: 198.702, force: 2733.625, rev_comm[0]: 196.346, rev_comm[1]: 604.842, rev_comm[2]: 219.358, inte[1]: 136.971
+[Rank 5] inte[0]: 203.955, comm[0]: 189.826, comm[1]: 597.880, comm[2]: 188.312, force: 2718.242, rev_comm[0]: 184.948, rev_comm[1]: 601.498, rev_comm[2]: 210.487, inte[1]: 136.167
+[Rank 6] inte[0]: 205.953, comm[0]: 205.739, comm[1]: 833.749, comm[2]: 204.576, force: 2730.039, rev_comm[0]: 200.917, rev_comm[1]: 845.023, rev_comm[2]: 227.683, inte[1]: 138.332
+[Rank 7] inte[0]: 204.318, comm[0]: 203.598, comm[1]: 838.388, comm[2]: 202.763, force: 2727.611, rev_comm[0]: 199.350, rev_comm[1]: 849.934, rev_comm[2]: 226.931, inte[1]: 138.171
+[Max rank 7] inte[0]: 204.318, comm[0]: 203.598, comm[1]: 838.388, comm[2]: 202.763, force: 2727.611, rev_comm[0]: 199.350, rev_comm[1]: 849.934, rev_comm[2]: 226.931, inte[1]: 138.171
+
+
+# Performance Summary:
+# MPI_proc OMP_threads nsteps natoms t_total t_force t_neigh t_comm t_other performance perf/thread grep_string t_extra
+8 1 100 8388608 0.576289 0.272515 0.000000 0.267657 0.036117 1455625238.553273 181953154.819159 PERF_SUMMARY 0.000000
+
+
