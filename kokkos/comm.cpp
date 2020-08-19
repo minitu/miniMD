@@ -33,6 +33,7 @@
 #include "stdlib.h"
 #include "mpi.h"
 #include "comm.h"
+#include "hapi_nvtx.h"
 
 #define BUFFACTOR 1.5
 #define BUFMIN 1000
@@ -271,6 +272,7 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
 
 void Comm::communicate(Atom &atom)
 {
+  NVTXTracer("Comm::communicate", NVTXColor::PeterRiver);
   Kokkos::Profiling::pushRegion("Comm::communicate");
 
   int iswap;
@@ -312,6 +314,7 @@ void Comm::communicate(Atom &atom)
 
 void Comm::reverse_communicate(Atom &atom)
 {
+  NVTXTracer("Comm::reverse_communicate", NVTXColor::PeterRiver);
   Kokkos::Profiling::pushRegion("Comm::reverse_communicate");
 
   int iswap;
@@ -356,6 +359,7 @@ void Comm::reverse_communicate(Atom &atom)
 
 void Comm::exchange(Atom &atom_)
 {
+  NVTXTracer("Comm::exchange", NVTXColor::WetAsphalt);
   Kokkos::Profiling::pushRegion("exchange");
   atom = atom_;
   int nsend, nrecv, nrecv1, nrecv2, nlocal;
@@ -541,6 +545,7 @@ void Comm::operator() (TagExchangeUnpack, const int& i ) const {
 
 void Comm::borders(Atom &atom_)
 {
+  NVTXTracer("Comm::borders", NVTXColor::Carrot);
   Kokkos::Profiling::pushRegion("Comm::borders");
   atom = atom_;
   int ineed, nsend, nrecv, nfirst, nlast;

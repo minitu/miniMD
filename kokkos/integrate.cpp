@@ -34,6 +34,7 @@
 #include "integrate.h"
 #include "math.h"
 #include "mpi.h"
+#include "hapi_nvtx.h"
 
 Integrate::Integrate() {sort_every=20;}
 Integrate::~Integrate() {}
@@ -45,6 +46,7 @@ void Integrate::setup()
 
 void Integrate::initialIntegrate()
 {
+  NVTXTracer("initialIntegrate", NVTXColor::Turquoise);
   Kokkos::parallel_for(Kokkos::RangePolicy<TagInitialIntegrate>(0,nlocal), *this);
 }
 
@@ -60,6 +62,7 @@ void Integrate::operator() (TagInitialIntegrate, const int& i) const {
 
 void Integrate::finalIntegrate()
 {
+  NVTXTracer("finalIntegrate", NVTXColor::Turquoise);
   Kokkos::parallel_for(Kokkos::RangePolicy<TagFinalIntegrate>(0,nlocal), *this);
 }
 

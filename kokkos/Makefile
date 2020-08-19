@@ -12,7 +12,7 @@ KOKKOS_ARCH = Power9,Volta70
 #Set third party library usage
 KOKKOS_USE_TPL =
 
-CXXFLAGS = -O3 -g
+CXXFLAGS = -O3 -g -I$(HOME)/work/charm/src/arch/cuda/hybridAPI
 LINKFLAGS =
 LIB =
 
@@ -91,7 +91,7 @@ all: $(OBJ) $(KOKKOS_LINK_DEPENDS)
 	$(LINK) $(LINKFLAGS) $(EXTRA_PATH) $(OBJ) $(KOKKOS_LDFLAGS) $(KOKKOS_LIBS) $(LIB) -o $(EXE)
 
 clean: kokkos-clean
-	rm *.o *.d libkokkos.a *.cuda *.host
+	rm -f *.o *.d libkokkos.a *.cuda *.host
 
 EXTRA_FLAGS = $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS)
 # Compilation rules
