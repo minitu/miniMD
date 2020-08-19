@@ -222,4 +222,11 @@ public:
   }
 };
 
+class Block : public CBase_Block {
+public:
+  Block() {
+    blockKokkos();
+  }
+};
+
 #include "miniMD.def.h"

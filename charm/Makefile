@@ -11,12 +11,13 @@ NVCC_OPTS = -O3 -std=c++11 -fopenmp
 
 CHARM_PATH = $(HOME)/work/charm
 CHARMC = $(CHARM_PATH)/bin/charmc $(OPTS)
+CHARM_INC = $(HOME)/work/charm/include
 
 TARGET = miniMD
 
 all: $(TARGET)
 
-$(TARGET): ljs.o ljs_kokkos.o input.o
+$(TARGET): ljs.o ljs_kokkos.o input.o atom.o neighbor.o
 	$(CHARMC) -language charm++ -fopenmp -L$(KOKKOS_LIB) -lkokkoscore -L$(CUDA_LIB) -o $@ $^
 
 ljs.o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h ljs_kokkos.h
@@ -32,6 +33,12 @@ $(TARGET).def.h: ljs.ci
 
 input.o: input.cpp
 	$(CHARMC) -c $<
+
+atom.o: atom.cpp atom.h
+	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) $<
+
+neighbor.o: neighbor.cpp neighbor.h
+	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 clean:
 	rm -f $(TARGET) *.decl.h *.def.h *.o charmrun

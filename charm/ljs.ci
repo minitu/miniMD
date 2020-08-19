@@ -28,4 +28,8 @@ mainmodule miniMD {
     entry KokkosManager();
     entry void finalize();
   };
+
+  array [1d] Block {
+    entry Block();
+  };
 };
