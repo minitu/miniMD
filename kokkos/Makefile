@@ -91,7 +91,7 @@ all: $(OBJ) $(KOKKOS_LINK_DEPENDS)
 	$(LINK) $(LINKFLAGS) $(EXTRA_PATH) $(OBJ) $(KOKKOS_LDFLAGS) $(KOKKOS_LIBS) $(LIB) -o $(EXE)
 
 clean: kokkos-clean
-	rm -f *.o *.d libkokkos.a *.cuda *.host
+	rm -f *.o *.d libkokkos.a *.cuda *.host $(EXE)
 
 EXTRA_FLAGS = $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS)
 # Compilation rules
