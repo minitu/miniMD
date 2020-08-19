@@ -1,7 +1,5 @@
 #Set the path to MPI
 MPI_PATH = $(MPI_ROOT)
-#Use MPI
-HAVE_MPI = yes
 
 #Set the path to Kokkos
 KOKKOS_PATH = $(HOME)/kokkos
@@ -16,16 +14,9 @@ CXXFLAGS = -O3 -g -I$(HOME)/work/charm/src/arch/cuda/hybridAPI
 LINKFLAGS =
 LIB =
 
-ifeq ($(HAVE_MPI), yes)
 CXX = $(KOKKOS_PATH)/bin/nvcc_wrapper
 override CXXFLAGS += -I$(MPI_PATH)/include
 LINK = mpicxx
-else
-CXX = g++
-override CXXFLAGS += -I./MPI-Stubs
-LINK = ${CXX}
-LIB += MPI-Stubs/libmpi_stubs.a
-endif
 
 EXE = miniMD
 
