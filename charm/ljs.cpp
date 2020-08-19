@@ -1,7 +1,7 @@
 #include "miniMD.decl.h"
 #include "pup_stl.h"
 #include "hapi.h"
-#include "ljs_kokkos.h"
+#include "ljs_kokkos_api.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -50,4 +50,4 @@ struct In {
   int thermo_nstat;
 };
 
-#endif
+#endif // LJS_H_

@@ -1,5 +1,5 @@
-#include "ljs.h"
 #include "ljs_kokkos.h"
+#include "ljs_kokkos_api.h"
 
 void kokkosInitialize(int num_threads, int teams, int device) {
   Kokkos::InitArguments args_kokkos;
