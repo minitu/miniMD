@@ -12,6 +12,24 @@
 
 /* readonly */ CProxy_Main main_proxy;
 /* readonly */ CProxy_KokkosManager kokkos_proxy;
+/* readonly */ int num_threads;
+/* readonly */ int teams;
+/* readonly */ int num_steps;
+/* readonly */ int system_size;
+/* readonly */ int nx;
+/* readonly */ int ny;
+/* readonly */ int nz;
+/* readonly */ int ntypes;
+/* readonly */ int neighbor_size;
+/* readonly */ int halfneigh;
+/* readonly */ int team_neigh;
+/* readonly */ int use_sse;
+/* readonly */ int check_safeexchange;
+/* readonly */ int do_safeexchange;
+/* readonly */ int sort;
+/* readonly */ int yaml_output;
+/* readonly */ int yaml_screen;
+/* readonly */ int ghost_newton;
 
 extern int input(In& in, const char* filename);
 
@@ -19,23 +37,22 @@ class Main : public CBase_Main {
 public:
   Main(CkArgMsg* m) {
     // Default parameters
-    int num_threads = 1;
-    int teams = 1;
-    int device = 0;
-    int num_steps = -1;
-    int system_size = -1;
-    int nx = -1; int ny = -1; int nz = -1;
-    int ntypes = 8;
-    int neighbor_size = -1;
-    int halfneigh = 1;
-    int team_neigh = 0;
-    int use_sse = 0;
-    int check_safeexchange = 0;
-    int do_safeexchange = 0;
-    int sort = -1;
-    int yaml_output = 0;
-    int yaml_screen = 0;
-    int ghost_newton = 1;
+    num_threads = 1;
+    teams = 1;
+    num_steps = -1;
+    system_size = -1;
+    nx = -1; int ny = -1; int nz = -1;
+    ntypes = 8;
+    neighbor_size = -1;
+    halfneigh = 1;
+    team_neigh = 0;
+    use_sse = 0;
+    check_safeexchange = 0;
+    do_safeexchange = 0;
+    sort = -1;
+    yaml_output = 0;
+    yaml_screen = 0;
+    ghost_newton = 1;
 
     // Process input file
     In in;
@@ -72,11 +89,6 @@ public:
 
       if ((strcmp(m->argv[i], "--teams") == 0)) {
         teams = atoi(m->argv[++i]);
-        continue;
-      }
-
-      if ((strcmp(m->argv[i], "-d") == 0) || (strcmp(m->argv[i], "--device") == 0)) {
-        device = atoi(m->argv[++i]);
         continue;
       }
 
@@ -179,7 +191,7 @@ public:
     }
 
     // Create KokkosManagers on each process
-    kokkos_proxy = CProxy_KokkosManager::ckNew(num_threads, teams, device);
+    kokkos_proxy = CProxy_KokkosManager::ckNew();
   }
 
   void kokkosInitialized() {
@@ -195,9 +207,9 @@ public:
 
 class KokkosManager : public CBase_KokkosManager {
 public:
-  KokkosManager(int num_threads, int teams, int device) {
+  KokkosManager() {
     // Initialize Kokkos
-    kokkosInitialize(num_threads, teams, device);
+    kokkosInitialize(num_threads, teams, 0);
 
     contribute(CkCallback(CkReductionTarget(Main, kokkosInitialized), main_proxy));
   }

@@ -1,4 +1,23 @@
 mainmodule miniMD {
+  readonly int num_threads;
+  readonly int teams;
+  readonly int num_steps;
+  readonly int system_size;
+  readonly int nx;
+  readonly int ny;
+  readonly int nz;
+  readonly int ntypes;
+  readonly int neighbor_size;
+  readonly int halfneigh;
+  readonly int team_neigh;
+  readonly int use_sse;
+  readonly int check_safeexchange;
+  readonly int do_safeexchange;
+  readonly int sort;
+  readonly int yaml_output;
+  readonly int yaml_screen;
+  readonly int ghost_newton;
+
   mainchare Main {
     entry Main(CkArgMsg* m);
     entry [reductiontarget] void kokkosInitialized();
@@ -6,7 +25,7 @@ mainmodule miniMD {
   };
 
   nodegroup KokkosManager {
-    entry KokkosManager(int num_threads, int teams, int device);
+    entry KokkosManager();
     entry void finalize();
   };
 };
