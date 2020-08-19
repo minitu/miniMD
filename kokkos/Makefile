@@ -12,9 +12,9 @@ KOKKOS_ARCH = Power9,Volta70
 #Set third party library usage
 KOKKOS_USE_TPL =
 
-CXXFLAGS = -O3 -g #-DDUMPI_TRACE -I$(HPM_PATH)/sst-dumpi/install/include
+CXXFLAGS = -O3 -g
 LINKFLAGS =
-LIB = #-L$(HPM_PATH)/sst-dumpi/install/lib -ldumpi
+LIB =
 
 ifeq ($(HAVE_MPI), yes)
 CXX = $(KOKKOS_PATH)/bin/nvcc_wrapper

@@ -46,10 +46,6 @@
 #include "force.h"
 #include "force_lj.h"
 
-#ifdef DUMPI_TRACE
-#include <dumpi/libdumpi/libdumpi.h>
-#endif
-
 #define MAXLINE 256
 
 int input(In &, const char*);
@@ -99,10 +95,6 @@ int main(int argc, char** argv)
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &me);
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-
-#ifdef DUMPI_TRACE
-  libdumpi_disable_profiling();
-#endif
 
   int error = 0;
 
