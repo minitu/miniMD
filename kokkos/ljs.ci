@@ -1,0 +1,10 @@
+mainmodule miniMD {
+  mainchare Main {
+    entry Main(CkArgMsg* m);
+    entry [reductiontarget] void kokkosInitialized();
+  };
+
+  nodegroup KokkosManager {
+    entry KokkosManager(int argc, std::vector<std::string> args);
+  };
+};
