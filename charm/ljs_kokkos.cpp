@@ -1,15 +1,12 @@
 #include "ljs_kokkos.h"
 #include "ljs_kokkos_api.h"
 #include "atom.h"
-/*
 #include "neighbor.h"
 #include "integrate.h"
 #include "thermo.h"
 #include "comm.h"
-#include "timer.h"
 #include "force.h"
 #include "force_lj.h"
-*/
 
 /* readonly */ extern int num_threads;
 /* readonly */ extern int teams;
@@ -44,13 +41,10 @@ void kokkosFinalize() {
 
 void blockKokkos() {
   Atom atom(ntypes);
-  /*
   Neighbor neighbor(ntypes);
   Integrate integrate;
   Thermo thermo;
   Comm comm;
-  Timer timer;
 
   Force* force;
-  */
 }

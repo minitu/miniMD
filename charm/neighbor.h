@@ -33,7 +33,6 @@
 #define NEIGHBOR_H
 
 #include "atom.h"
-#include "timer.h"
 
 class Neighbor
 {
@@ -66,8 +65,6 @@ class Neighbor
     void dealloc();
     int setup(Atom &);               // setup bins based on box and cutoff
     void build(Atom &);              // create neighbor list
-
-    Timer* timer;
 
     // Atom is going to call binatoms etc for sorting
     void binatoms(Atom & atom, int count = -1);           // bin all atoms

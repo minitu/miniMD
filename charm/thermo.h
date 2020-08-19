@@ -29,37 +29,49 @@
    Please read the accompanying README and LICENSE files.
 ---------------------------------------------------------------------- */
 
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef THERMO_H
+#define THERMO_H
 
-#define TIME_TOTAL 0
-#define TIME_COMM  1
-#define TIME_FORCE 2
-#define TIME_NEIGH 3
-#define TIME_TEST 4
-#define TIME_N     5
+enum units {LJ, METAL};
+#include "atom.h"
+#include "neighbor.h"
+#include "force.h"
+#include "comm.h"
+#include "types.h"
 
-#include <ctime>
+class Integrate;
 
-class Timer
+class Thermo
 {
   public:
-    Timer();
-    ~Timer();
-    void stamp();
-    void stamp(int);
-    void stamp_extra_start();
-    void stamp_extra_stop(int);
-    void barrier_start(int);
-    void barrier_stop(int);
-    double* array;
+
+    MMD_int nstat;
+    MMD_int mstat;
+    MMD_int ntimes;
+    MMD_int* steparr;
+    MMD_float* tmparr;
+    MMD_float* engarr;
+    MMD_float* prsarr;
+
+    Thermo();
+    ~Thermo();
+    void setup(MMD_float, Integrate &integrate, Atom &atom, MMD_int);
+    MMD_float temperature(Atom &);
+    KOKKOS_INLINE_FUNCTION
+    void operator() (const int& i, MMD_float& mv) const;
+
+    MMD_float energy(Atom &, Neighbor &, Force*);
+    MMD_float pressure(MMD_float, Force*);
+    void compute(MMD_int, Atom &, Neighbor &, Force*, Comm &);
+
+    x_const_view_type v;
+    MMD_float mass;
+
+    MMD_float t_act, p_act, e_act;
+    MMD_float t_scale, e_scale, p_scale, mvv2e, dof_boltz;
 
   private:
-#ifdef PREC_TIMER
-    timespec previous_time, previous_time_extra;
-#endif
-    double previous_time_d, previous_time_extra_d;
-
+    MMD_float rho;
 };
 
 #endif
