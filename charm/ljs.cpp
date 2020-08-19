@@ -1,7 +1,7 @@
 #include "miniMD.decl.h"
 #include "pup_stl.h"
-#include "ljs.h"
 #include "hapi.h"
+#include "ljs_kokkos.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,17 +45,13 @@ public:
     int device = 0;
 
     // Initialize Kokkos
-    Kokkos::InitArguments args_kokkos;
-    args_kokkos.num_threads = num_threads;
-    args_kokkos.num_numa = teams;
-    args_kokkos.device_id = device;
-    Kokkos::initialize(args_kokkos);
+    kokkosInitialize(num_threads, teams, device);
 
     contribute(CkCallback(CkReductionTarget(Main, kokkosInitialized), main_proxy));
   }
 
   ~KokkosManager() {
-    Kokkos::finalize();
+    kokkosFinalize();
   }
 };
 

@@ -1,23 +1,29 @@
 KOKKOS_PATH ?= $(HOME)/kokkos/install
 KOKKOS_INC = $(KOKKOS_PATH)/include
-KOKKOS_LIB = $(KOKKOS_PATH)/lib
+KOKKOS_LIB = $(KOKKOS_PATH)/lib64
+
+CUDA_PATH ?= $(CUDA_DIR)
+CUDA_INC = $(CUDA_PATH)/include
+CUDA_LIB = $(CUDA_PATH)/lib64
 
 NVCC_WRAPPER = $(KOKKOS_PATH)/bin/nvcc_wrapper
-NVCC_OPTS = -O3
+NVCC_OPTS = -O3 -std=c++11 -fopenmp
 
 CHARM_PATH = $(HOME)/work/charm
 CHARMC = $(CHARM_PATH)/bin/charmc $(OPTS)
 
 TARGET = miniMD
-EXE = $(TARGET).charm
 
 all: $(TARGET)
 
-$(TARGET): $(TARGET).o
-	$(CHARMC) -language charm++ -fopenmp -L$(KOKKOS_LIB) -lkokkos -o $@ $^
+$(TARGET): ljs.o ljs_kokkos.o
+	$(CHARMC) -language charm++ -fopenmp -L$(KOKKOS_LIB) -lkokkoscore -L$(CUDA_LIB) -o $@ $^
 
-$(TARGET).o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h
+ljs.o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h ljs_kokkos.h
 	$(CHARMC) -I$(KOKKOS_INC) -fopenmp -c $<
+
+ljs_kokkos.o: ljs_kokkos.cpp ljs_kokkos.h
+	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) $<
 
 $(TARGET).decl.h: ljs.ci
 	$(CHARMC) $<
@@ -25,4 +31,4 @@ $(TARGET).decl.h: ljs.ci
 $(TARGET).def.h: ljs.ci
 
 clean:
-	rm -f $(EXE) *.decl.h *.def.h *.o charmrun
+	rm -f $(TARGET) *.decl.h *.def.h *.o charmrun
