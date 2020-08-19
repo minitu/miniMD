@@ -9,7 +9,7 @@
 #include <string>
 
 /* readonly */ CProxy_Main main_proxy;
-/* readonly */ CProxy_KokkosManager kokkosManager_proxy;
+/* readonly */ CProxy_KokkosManager kokkos_proxy;
 
 class Main : public CBase_Main {
 public:
@@ -21,11 +21,16 @@ public:
     }
 
     // Create KokkosManagers on each process
-    kokkosManager_proxy = CProxy_KokkosManager::ckNew(m->argc, args);
+    kokkos_proxy = CProxy_KokkosManager::ckNew(m->argc, args);
   }
 
   void kokkosInitialized() {
     CkPrintf("Kokkos initialized!\n");
+    kokkos_proxy.finalize();
+  }
+
+  void kokkosFinalized() {
+    CkPrintf("Kokkos finalized!\n");
     CkExit();
   }
 };
@@ -50,8 +55,11 @@ public:
     contribute(CkCallback(CkReductionTarget(Main, kokkosInitialized), main_proxy));
   }
 
-  ~KokkosManager() {
+  void finalize() {
+    // Finalize Kokkos
     kokkosFinalize();
+
+    contribute(CkCallback(CkReductionTarget(Main, kokkosFinalized), main_proxy));
   }
 };
 
