@@ -1,6 +1,8 @@
 #include "miniMD.decl.h"
 #include "pup_stl.h"
 #include "hapi.h"
+
+#include "ljs.h"
 #include "ljs_kokkos_api.h"
 
 #include <stdio.h>
@@ -10,6 +12,8 @@
 
 /* readonly */ CProxy_Main main_proxy;
 /* readonly */ CProxy_KokkosManager kokkos_proxy;
+
+extern int input(In& in, const char* filename);
 
 class Main : public CBase_Main {
 public:
@@ -22,6 +26,30 @@ public:
 
     // Create KokkosManagers on each process
     kokkos_proxy = CProxy_KokkosManager::ckNew(m->argc, args);
+
+    // Process input file
+    In in;
+    in.datafile = nullptr;
+    char* input_file = nullptr;
+
+    for (int i = 0; i < m->argc; i++) {
+      if ((strcmp(m->argv[i], "-i") == 0) || (strcmp(m->argv[i], "--input_file") == 0)) {
+        input_file = m->argv[++i];
+        continue;
+      }
+    }
+
+    int error = 0;
+    if (input_file == nullptr) {
+      error = input(in, "../inputs/in.lj.miniMD");
+    } else {
+      error = input(in, input_file);
+    }
+
+    if (error) {
+      CkPrintf("ERROR: Failed to read input file\n");
+      CkExit();
+    }
   }
 
   void kokkosInitialized() {

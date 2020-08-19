@@ -16,7 +16,7 @@ TARGET = miniMD
 
 all: $(TARGET)
 
-$(TARGET): ljs.o ljs_kokkos.o
+$(TARGET): ljs.o ljs_kokkos.o input.o
 	$(CHARMC) -language charm++ -fopenmp -L$(KOKKOS_LIB) -lkokkoscore -L$(CUDA_LIB) -o $@ $^
 
 ljs.o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h ljs_kokkos.h
@@ -29,6 +29,9 @@ $(TARGET).decl.h: ljs.ci
 	$(CHARMC) $<
 
 $(TARGET).def.h: ljs.ci
+
+input.o: input.cpp
+	$(CHARMC) -c $<
 
 clean:
 	rm -f $(TARGET) *.decl.h *.def.h *.o charmrun
