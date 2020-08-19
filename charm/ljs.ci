@@ -6,7 +6,7 @@ mainmodule miniMD {
   };
 
   nodegroup KokkosManager {
-    entry KokkosManager(int argc, std::vector<std::string> args);
+    entry KokkosManager(int num_threads, int teams, int device);
     entry void finalize();
   };
 };

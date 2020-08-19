@@ -18,14 +18,13 @@ extern int input(In& in, const char* filename);
 class Main : public CBase_Main {
 public:
   Main(CkArgMsg* m) {
-    // Pack command line arguments
-    std::vector<std::string> args;
-    for (int i = 0; i < m->argc; i++) {
-      args.push_back(std::string(m->argv[i]));
-    }
+    // Default parameters
+    int num_threads = 1;
+    int teams = 1;
+    int device = 0;
 
     // Create KokkosManagers on each process
-    kokkos_proxy = CProxy_KokkosManager::ckNew(m->argc, args);
+    kokkos_proxy = CProxy_KokkosManager::ckNew(num_threads, teams, device);
 
     // Process input file
     In in;
@@ -50,6 +49,8 @@ public:
       CkPrintf("ERROR: Failed to read input file\n");
       CkExit();
     }
+
+    srand(5413);
   }
 
   void kokkosInitialized() {
@@ -65,18 +66,7 @@ public:
 
 class KokkosManager : public CBase_KokkosManager {
 public:
-  KokkosManager(int argc, std::vector<std::string> args) {
-    // Unpack command line arguments
-    char* argv[argc];
-    for (int i = 0; i < argc; i++) {
-      argv[i] = const_cast<char*>(args[i].c_str());
-    }
-
-    // Default parameters
-    int num_threads = 1;
-    int teams = 1;
-    int device = 0;
-
+  KokkosManager(int num_threads, int teams, int device) {
     // Initialize Kokkos
     kokkosInitialize(num_threads, teams, device);
 
