@@ -40,9 +40,6 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
-double comm_times[3] = {0, 0, 0};
-double rev_comm_times[3] = {0, 0, 0};
-
 Comm::Comm()
 {
   maxsend = BUFMIN;
@@ -145,8 +142,6 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   atom.box.yhi = (myloc[1] + 1) * prd[1] / procgrid[1];
   atom.box.zlo = myloc[2] * prd[2] / procgrid[2];
   atom.box.zhi = (myloc[2] + 1) * prd[2] / procgrid[2];
-
-  printf("[Rank %d] xlo: %lf, xhi: %lf, ylo: %lf, yhi: %lf, zlo: %lf, zhi: %lf\n", me, atom.box.xlo, atom.box.xhi, atom.box.ylo, atom.box.yhi, atom.box.zlo, atom.box.zhi);
 
   /* need = # of boxes I need atoms from in each dimension */
 
@@ -280,17 +275,6 @@ void Comm::communicate(Atom &atom)
 
   int iswap;
   int pbc_flags[4];
-  MPI_Request requests[2];
-  MPI_Status statuses[2];
-  double start_time;
-
-#ifdef K_MODE
-  static int total_count = 0;
-  static int remote_count = 0;
-  static int node_size = 4;
-  static int my_node = me / node_size;
-  static int iter = 0;
-#endif
 
   for(iswap = 0; iswap < nswap; iswap++) {
 
@@ -303,55 +287,23 @@ void Comm::communicate(Atom &atom)
 
     int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
     if(sendproc[iswap] != me) {
-      start_time = MPI_Wtime();
       atom.pack_comm(sendnum[iswap], list, buf_send, pbc_flags);
       Kokkos::fence();
-      comm_times[0] += MPI_Wtime() - start_time;
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
-      MPI_Barrier(MPI_COMM_WORLD);
-      MPI_Barrier(MPI_COMM_WORLD);
-
-#ifdef K_MODE
-      total_count++;
-      int other_node = sendproc[iswap] / node_size;
-      if (other_node != my_node) remote_count++;
-#endif
-
-      start_time = MPI_Wtime();
-      if(sizeof(MMD_float) == 4) {
-        MPI_Irecv(buf_recv.data(), comm_recv_size[iswap], MPI_FLOAT,
-        recvproc[iswap], 0, MPI_COMM_WORLD, &requests[0]);
-        MPI_Isend(buf_send.data(), comm_send_size[iswap], MPI_FLOAT,
-        sendproc[iswap], 0, MPI_COMM_WORLD, &requests[1]);
-      } else {
-        MPI_Irecv(buf_recv.data(), comm_recv_size[iswap], MPI_DOUBLE,
-        recvproc[iswap], 0, MPI_COMM_WORLD, &requests[0]);
-        MPI_Isend(buf_send.data(), comm_send_size[iswap], MPI_DOUBLE,
-        sendproc[iswap], 0, MPI_COMM_WORLD, &requests[1]);
-      }
-
-      MPI_Waitall(2, requests, statuses);
-      comm_times[1] += MPI_Wtime() - start_time;
+      MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
+      MPI_Sendrecv(buf_send.data(), comm_send_size[iswap], type, sendproc[iswap], 0,
+                   buf_recv.data(), comm_recv_size[iswap], type, recvproc[iswap], 0,
+                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
       buf = buf_recv;
-      start_time = MPI_Wtime();
       atom.unpack_comm(recvnum[iswap], firstrecv[iswap], buf);
       Kokkos::fence();
-      comm_times[2] += MPI_Wtime() - start_time;
-    }
-    else {
-      start_time = MPI_Wtime();
+    } else
       atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
       Kokkos::fence();
-      comm_times[0] += MPI_Wtime() - start_time;
-    }
   }
-
-#ifdef K_MODE
-  if (++iter == 100) printf("[K - Rank %d] K: %d/%d\n", me, remote_count, total_count);
-#endif
 
   Kokkos::Profiling::popRegion();
 }
@@ -363,9 +315,6 @@ void Comm::reverse_communicate(Atom &atom)
   Kokkos::Profiling::pushRegion("Comm::reverse_communicate");
 
   int iswap;
-  MPI_Request requests[2];
-  MPI_Status statuses[2];
-  double start_time;
 
   for(iswap = nswap - 1; iswap >= 0; iswap--) {
 
@@ -373,42 +322,26 @@ void Comm::reverse_communicate(Atom &atom)
 
     /* pack buffer */
 
-    start_time = MPI_Wtime();
     atom.pack_reverse(recvnum[iswap], firstrecv[iswap], buf_send);
     Kokkos::fence();
-    rev_comm_times[0] += MPI_Wtime() - start_time;
 
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    start_time = MPI_Wtime();
     if(sendproc[iswap] != me) {
-      if(sizeof(MMD_float) == 4) {
-        MPI_Irecv(buf_recv.data(), reverse_recv_size[iswap], MPI_FLOAT,
-        sendproc[iswap], 0, MPI_COMM_WORLD, &requests[0]);
-        MPI_Isend(buf_send.data(), reverse_send_size[iswap], MPI_FLOAT,
-        recvproc[iswap], 0, MPI_COMM_WORLD, &requests[1]);
-      } else {
-        MPI_Irecv(buf_recv.data(), reverse_recv_size[iswap], MPI_DOUBLE,
-        sendproc[iswap], 0, MPI_COMM_WORLD, &requests[0]);
-        MPI_Isend(buf_send.data(), reverse_send_size[iswap], MPI_DOUBLE,
-        recvproc[iswap], 0, MPI_COMM_WORLD, &requests[1]);
-      }
-      MPI_Waitall(2, requests, statuses);
-      rev_comm_times[1] += MPI_Wtime() - start_time;
+
+      MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
+      MPI_Sendrecv(buf_send.data(), reverse_send_size[iswap], type, recvproc[iswap], 0,
+               buf_recv.data(), reverse_recv_size[iswap], type, sendproc[iswap], 0,
+               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
       buf = buf_recv;
     } else buf = buf_send;
 
     /* unpack buffer */
 
-    start_time = MPI_Wtime();
     atom.unpack_reverse(sendnum[iswap], list, buf);
     Kokkos::fence();
-    rev_comm_times[2] += MPI_Wtime() - start_time;
   }
 
   Kokkos::Profiling::popRegion();
@@ -426,9 +359,6 @@ void Comm::exchange(Atom &atom_)
   Kokkos::Profiling::pushRegion("exchange");
   atom = atom_;
   int nsend, nrecv, nrecv1, nrecv2, nlocal;
-
-  MPI_Request request;
-  MPI_Status status;
 
   /* enforce PBC */
 
@@ -513,45 +443,30 @@ void Comm::exchange(Atom &atom_)
 
     nsend = count.h_view(0) * 7;
 
-
-
-      MPI_Send(&nsend, 1, MPI_INT, procneigh[idim][0], 0, MPI_COMM_WORLD);
-      MPI_Recv(&nrecv1, 1, MPI_INT, procneigh[idim][1], 0, MPI_COMM_WORLD, &status);
+      MPI_Sendrecv(&nsend, 1, MPI_INT, procneigh[idim][0], 0,
+                   &nrecv1, 1, MPI_INT, procneigh[idim][1], 0,
+                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       nrecv = nrecv1;
 
       if(procgrid[idim] > 2) {
-        MPI_Send(&nsend, 1, MPI_INT, procneigh[idim][1], 0, MPI_COMM_WORLD);
-        MPI_Recv(&nrecv2, 1, MPI_INT, procneigh[idim][0], 0, MPI_COMM_WORLD, &status);
+        MPI_Sendrecv(&nsend, 1, MPI_INT, procneigh[idim][1], 0,
+                     &nrecv2, 1, MPI_INT, procneigh[idim][0], 0,
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         nrecv += nrecv2;
       }
 
       if(nrecv > maxrecv) growrecv(nrecv);
       Kokkos::fence();
 
-      if(sizeof(MMD_float) == 4) {
-        MPI_Irecv(buf_recv.data(), nrecv1, MPI_FLOAT, procneigh[idim][1], 0,
-                  MPI_COMM_WORLD, &request);
-        MPI_Send(buf_send.data(), nsend, MPI_FLOAT, procneigh[idim][0], 0, MPI_COMM_WORLD);
-      } else {
-        MPI_Irecv(buf_recv.data(), nrecv1, MPI_DOUBLE, procneigh[idim][1], 0,
-                  MPI_COMM_WORLD, &request);
-        MPI_Send(buf_send.data(), nsend, MPI_DOUBLE, procneigh[idim][0], 0, MPI_COMM_WORLD);
-      }
-
-      MPI_Wait(&request, &status);
+      MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
+      MPI_Sendrecv(buf_send.data(), nsend, type, procneigh[idim][0], 0,
+                   buf_recv.data(), nrecv1, type, procneigh[idim][1], 0,
+                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
       if(procgrid[idim] > 2) {
-        if(sizeof(MMD_float) == 4) {
-          MPI_Irecv(buf_recv.data()+nrecv1, nrecv2, MPI_FLOAT, procneigh[idim][0], 0,
-                    MPI_COMM_WORLD, &request);
-          MPI_Send(buf_send.data(), nsend, MPI_FLOAT, procneigh[idim][1], 0, MPI_COMM_WORLD);
-        } else {
-          MPI_Irecv(buf_recv.data()+nrecv1, nrecv2, MPI_DOUBLE, procneigh[idim][0], 0,
-                    MPI_COMM_WORLD, &request);
-          MPI_Send(buf_send.data(), nsend, MPI_DOUBLE, procneigh[idim][1], 0, MPI_COMM_WORLD);
-        }
-
-        MPI_Wait(&request, &status);
+        MPI_Sendrecv(buf_send.data(), nsend, type, procneigh[idim][1], 0,
+                     buf_recv.data()+nrecv1, nrecv2, type, procneigh[idim][0], 0,
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
 
       nrecv_atoms = nrecv / 7;
@@ -629,8 +544,6 @@ void Comm::borders(Atom &atom_)
   Kokkos::Profiling::pushRegion("Comm::borders");
   atom = atom_;
   int ineed, nsend, nrecv, nfirst, nlast;
-  MPI_Request request;
-  MPI_Status status;
 
   /* erase all ghost atoms */
 
@@ -710,24 +623,16 @@ void Comm::borders(Atom &atom_)
 
 
         if(sendproc[iswap] != me) {
-          MPI_Send(&nsend, 1, MPI_INT, sendproc[iswap], 0, MPI_COMM_WORLD);
-          MPI_Recv(&nrecv, 1, MPI_INT, recvproc[iswap], 0, MPI_COMM_WORLD, &status);
+          MPI_Sendrecv(&nsend, 1, MPI_INT, sendproc[iswap], 0,
+                       &nrecv, 1, MPI_INT, recvproc[iswap], 0,
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
           if(nrecv * atom.border_size > maxrecv) growrecv(nrecv * atom.border_size);
 
-          if(sizeof(MMD_float) == 4) {
-            MPI_Irecv(buf_recv.data(), nrecv * atom.border_size, MPI_FLOAT,
-                      recvproc[iswap], 0, MPI_COMM_WORLD, &request);
-            MPI_Send(buf_send.data(), nsend * atom.border_size, MPI_FLOAT,
-                     sendproc[iswap], 0, MPI_COMM_WORLD);
-          } else {
-            MPI_Irecv(buf_recv.data(), nrecv * atom.border_size, MPI_DOUBLE,
-                      recvproc[iswap], 0, MPI_COMM_WORLD, &request);
-            MPI_Send(buf_send.data(), nsend * atom.border_size, MPI_DOUBLE,
-                     sendproc[iswap], 0, MPI_COMM_WORLD);
-          }
-
-          MPI_Wait(&request, &status);
+          MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
+          MPI_Sendrecv(buf_send.data(), nsend * atom.border_size, type, sendproc[iswap], 0,
+                       buf_recv.data(), nrecv * atom.border_size, type, recvproc[iswap], 0,
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE);
           buf = buf_recv;
         } else {
           nrecv = nsend;
