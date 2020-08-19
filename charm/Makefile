@@ -16,7 +16,7 @@ all: $(TARGET)
 $(TARGET): $(TARGET).o
 	$(CHARMC) -language charm++ -fopenmp -L$(KOKKOS_LIB) -lkokkos -o $@ $^
 
-$(TARGET).o: ljs-charm.cpp $(TARGET).decl.h $(TARGET).def.h
+$(TARGET).o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h
 	$(CHARMC) -I$(KOKKOS_INC) -fopenmp -c $<
 
 $(TARGET).decl.h: ljs.ci
