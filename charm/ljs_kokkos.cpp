@@ -135,9 +135,9 @@ struct BlockKokkos {
         }
       }
 
-      Kokkos::deep_copy(comm_instance, d_epsilon, h_epsilon);
-      Kokkos::deep_copy(comm_instance, d_sigma6, h_sigma6);
-      Kokkos::deep_copy(comm_instance, d_sigma, h_sigma);
+      Kokkos::deep_copy(d_epsilon, h_epsilon);
+      Kokkos::deep_copy(d_sigma6, h_sigma6);
+      Kokkos::deep_copy(d_sigma, h_sigma);
     }
 
     neighbor.ghost_newton = ghost_newton;

@@ -518,7 +518,7 @@ int Neighbor::setup(Atom &atom)
     cutneighsq_stack[i] = cutneigh * cutneigh;
   }
 
-  Kokkos::deep_copy(comm_instance, cutneighsq, h_cutneighsq);
+  Kokkos::deep_copy(cutneighsq, h_cutneighsq);
   xprd = atom.box.xprd;
   yprd = atom.box.yprd;
   zprd = atom.box.zprd;
@@ -639,7 +639,7 @@ int Neighbor::setup(Atom &atom)
     }
   }
 
-  Kokkos::deep_copy(comm_instance, stencil, h_stencil);
+  Kokkos::deep_copy(stencil, h_stencil);
   mbins = mbinx * mbiny * mbinz;
 
   bincount = int_1d_view_type("Neighbor::bincount",mbins);

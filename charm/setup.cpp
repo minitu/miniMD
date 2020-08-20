@@ -431,9 +431,9 @@ int create_atoms(Atom &atom, int nx, int ny, int nz, double rho,
   /* check for overflows on any proc */
   /* check that correct # of atoms were created */
 
-  Kokkos::deep_copy(comm_instance, atom.x, atom.h_x);
-  Kokkos::deep_copy(comm_instance, atom.v, atom.h_v);
-  Kokkos::deep_copy(comm_instance, atom.type, atom.h_type);
+  Kokkos::deep_copy(atom.x, atom.h_x);
+  Kokkos::deep_copy(atom.v, atom.h_v);
+  Kokkos::deep_copy(atom.type, atom.h_type);
 
   return 0;
 }
