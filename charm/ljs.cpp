@@ -12,6 +12,9 @@
 
 /* readonly */ CProxy_Main main_proxy;
 /* readonly */ CProxy_KokkosManager kokkos_proxy;
+/* readonly */ CProxy_Block block_proxy;
+/* readonly */ int num_chares;
+
 /* readonly */ int num_threads;
 /* readonly */ int teams;
 /* readonly */ int num_steps;
@@ -55,9 +58,12 @@ extern int input(const char* filename, int& in_nx, int& in_ny, int& in_nz,
     int& in_thermo_nstat);
 
 class Main : public CBase_Main {
+  Main_SDAG_CODE
+
 public:
   Main(CkArgMsg* m) {
     // Default parameters
+    num_chares = 4;
     num_threads = 1;
     teams = 1;
     num_steps = -1;
@@ -107,6 +113,11 @@ public:
 
     // Process other command line parameters
     for (int i = 0; i < m->argc; i++) {
+      if ((strcmp(m->argv[i], "-c") == 0) || (strcmp(m->argv[i], "--num_chares") == 0)) {
+        num_chares = atoi(m->argv[++i]);
+        continue;
+      }
+
       if ((strcmp(m->argv[i], "-t") == 0) || (strcmp(m->argv[i], "--num_threads") == 0)) {
         num_threads = atoi(m->argv[++i]);
         continue;
@@ -218,18 +229,22 @@ public:
       ghost_newton = 0;
     }
 
+    if (num_steps > 0) in_ntimes = num_steps;
+    if (system_size > 0) in_nx = in_ny = in_nz = system_size;
+
+    if (nx > 0) {
+      in_nx = nx;
+      if (ny > 0) in_ny = ny;
+      else if (system_size < 0) in_ny = nx;
+
+      if (nz > 0) in_nz = nz;
+      else if (system_size < 0) in_nz = nx;
+    }
+
     // Create KokkosManagers on each process
     kokkos_proxy = CProxy_KokkosManager::ckNew();
-  }
 
-  void kokkosInitialized() {
-    CkPrintf("Kokkos initialized!\n");
-    kokkos_proxy.finalize();
-  }
-
-  void kokkosFinalized() {
-    CkPrintf("Kokkos finalized!\n");
-    CkExit();
+    thisProxy.run();
   }
 };
 
@@ -252,8 +267,34 @@ public:
 
 class Block : public CBase_Block {
   void* block;
+
+  cudaStream_t compute_stream;
+  cudaStream_t comm_stream;
+
+  cudaEvent_t compute_event;
+  cudaEvent_t comm_event;
+
 public:
-  Block() { blockNew(&block); }
+  Block() {
+    // Create CUDA streams (higher priority for communication stream)
+    cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
+    cudaStreamCreateWithPriority(&comm_stream, cudaStreamDefault, -1);
+
+    // Create CUDA events used to preserve dependencies between streams
+    cudaEventCreateWithFlags(&compute_event, cudaEventDisableTiming);
+    cudaEventCreateWithFlags(&comm_event, cudaEventDisableTiming);
+
+    blockNew(&block, thisIndex, compute_stream, comm_stream, compute_event,
+        comm_event);
+
+    CkCallback* cb = new CkCallback(CkIndex_Block::initDone(), thisProxy[thisIndex]);
+    hapiAddCallback(comm_stream, cb);
+  }
+
+  void initDone() {
+    contribute(CkCallback(CkReductionTarget(Main, blocksCreated), main_proxy));
+  }
+
   ~Block() { blockDelete(block); }
 };
 

@@ -1,6 +1,11 @@
 mainmodule miniMD {
   include "types.h";
 
+  readonly CProxy_Main main_proxy;
+  readonly CProxy_KokkosManager kokkos_proxy;
+  readonly CProxy_Block block_proxy;
+  readonly int num_chares;
+
   readonly int num_threads;
   readonly int teams;
   readonly int num_steps;
@@ -39,7 +44,26 @@ mainmodule miniMD {
   mainchare Main {
     entry Main(CkArgMsg* m);
     entry [reductiontarget] void kokkosInitialized();
+    entry [reductiontarget] void blocksCreated();
     entry [reductiontarget] void kokkosFinalized();
+
+    entry void run() {
+      when kokkosInitialized() serial {
+        CkPrintf("Kokkos initialized!\n");
+
+        // Create blocks
+        block_proxy = CProxy_Block::ckNew(num_chares);
+      }
+
+      when blocksCreated() serial {
+        kokkos_proxy.finalize();
+      }
+
+      when kokkosFinalized() serial {
+        CkPrintf("Kokkos finalized!\n");
+        CkExit();
+      }
+    }
   };
 
   nodegroup KokkosManager {
@@ -49,5 +73,6 @@ mainmodule miniMD {
 
   array [1d] Block {
     entry Block();
+    entry void initDone();
   };
 };
