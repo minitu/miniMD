@@ -62,7 +62,7 @@ class Comm
     KOKKOS_INLINE_FUNCTION
     void operator() (TagBorderUnpack, const int&  ) const;
 
-    Comm();
+    Comm(int);
     ~Comm();
     int setup(MMD_float, Atom &);
     void communicate(Atom &);
@@ -74,7 +74,7 @@ class Comm
     void growlist(int, int);
 
   public:
-    int me;                                      // my MPI rank
+    int index;                                      // my chare index
     int nswap;                                   // # of swaps to perform
     int_1d_host_view_type pbc_any;                    // whether any PBC on this swap
     int_1d_host_view_type pbc_flagx;                  // PBC correction in x for this swap
@@ -86,7 +86,6 @@ class Comm
     int_1d_host_view_type reverse_send_size;          // # of values to send in each reverse
     int_1d_host_view_type reverse_recv_size;          // # of values to recv in each reverse
     int_1d_host_view_type sendproc, recvproc;         // proc to send/recv with at each swap
-    int_1d_host_view_type sendproc_exc, recvproc_exc; // proc to send/recv with at each swap for safe exchange
 
     int_1d_host_view_type firstrecv;                  // where to put 1st recv atom in each swap
     int_2d_lr_view_type sendlist;                   // list of atoms to send in each swap
@@ -106,10 +105,9 @@ class Comm
     int maxsend;
     int maxrecv;
 
-    int procneigh[3][2];              // my 6 proc neighbors
-    int procgrid[3];                  // # of procs in each dim
-    int nprocs;
-    int need[3];                      // how many procs away needed in each dim
+    int chareneigh[3][2];              // my 6 chare neighbors
+    int charegrid[3];                  // # of chares in each dim
+    int need[3];                      // how many chares away needed in each dim
     float_1d_host_view_type slablo, slabhi;          // bounds of slabs to send to other procs
 
     int check_safeexchange;           // if sets give warnings if an atom moves further than subdomain size

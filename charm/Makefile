@@ -17,7 +17,7 @@ TARGET = miniMD
 
 all: $(TARGET)
 
-$(TARGET): ljs.o ljs_kokkos.o input.o atom.o neighbor.o comm.o force_eam.o force_lj.o integrate.o thermo.o
+$(TARGET): ljs.o ljs_kokkos.o input.o atom.o neighbor.o comm.o force_eam.o force_lj.o integrate.o thermo.o setup.o
 	$(CHARMC) -language charm++ -fopenmp -L$(KOKKOS_LIB) -lkokkoscore -L$(CUDA_LIB) -o $@ $^
 
 ljs.o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h ljs_kokkos.h
@@ -53,6 +53,9 @@ integrate.o: integrate.cpp integrate.h
 	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 thermo.o: thermo.cpp thermo.h
+	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
+
+setup.o: setup.cpp
 	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 clean:

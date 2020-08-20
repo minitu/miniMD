@@ -9,6 +9,7 @@
 #include "force_lj.h"
 #include "force_eam.h"
 
+/* readonly */ extern int num_chares;
 /* readonly */ extern int num_threads;
 /* readonly */ extern int teams;
 /* readonly */ extern int num_steps;
@@ -43,6 +44,10 @@
 /* readonly */ extern MMD_float in_force_cut;
 /* readonly */ extern MMD_float in_neigh_cut;
 /* readonly */ extern int in_thermo_nstat;
+
+extern void create_box(Atom& atom, int nx, int ny, int nz, double rho);
+extern int create_atoms(Atom& atom, int nx, int ny, int nz, double rho);
+extern void create_velocity(double t_request, Atom& atom, Thermo& thermo);
 
 void kokkosInitialize(int num_threads, int teams, int device) {
   Kokkos::InitArguments args_kokkos;
@@ -81,7 +86,7 @@ struct BlockKokkos {
       cudaEvent_t compute_event_, cudaEvent_t comm_event_) :
     index(index_), compute_stream(compute_stream_), comm_stream(comm_stream_),
     compute_event(compute_event_), comm_event(comm_event_),
-    atom(ntypes), neighbor(ntypes), integrate(), thermo(), comm() {
+    atom(ntypes), neighbor(ntypes), integrate(), thermo(), comm(index_) {
 
     // Create separate execution instances with CUDA streams
     compute_instance = Kokkos::Cuda(compute_stream);
@@ -160,8 +165,13 @@ struct BlockKokkos {
     if (index == 0)
       printf("# Create System:\n");
 
-    /*
     if (!in_datafile.empty()) {
+      if (index == 0) {
+        printf("Lammps data file not yet supported\n");
+      }
+      exit(0);
+
+      /* TODO
       read_lammps_data(atom, comm, neighbor, integrate, thermo,
           in_datafile.c_str(), in_units);
       MMD_float volume = atom.box.xprd * atom.box.yprd * atom.box.zprd;
@@ -169,11 +179,13 @@ struct BlockKokkos {
       force->setup();
 
       if (in_forcetype == FORCEEAM) atom.mass = force->mass;
+      */
     } else {
       create_box(atom, in_nx, in_ny, in_nz, in_rho);
 
       comm.setup(neighbor.cutneigh, atom);
 
+      /*
       neighbor.setup(atom);
 
       integrate.setup();
@@ -186,18 +198,18 @@ struct BlockKokkos {
       thermo.setup(in_rho, integrate, atom, in_units);
 
       create_velocity(in_t_request, atom, thermo);
+      */
     }
 
     if (index == 0)
       printf("# Done .... \n");
 
     if (index == 0) {
-      fprintf(stdout, "# " VARIANT_STRING " output ...\n");
+      fprintf(stdout, "# Charm++ + Kokkos MiniMD output ...\n");
       fprintf(stdout, "# Run Settings: \n");
-      fprintf(stdout, "\t# MPI processes: %i\n", comm.nprocs);
+      fprintf(stdout, "\t# Chares: %i\n", num_chares);
       fprintf(stdout, "\t# Host Threads: %i\n", Kokkos::HostSpace::execution_space::concurrency());
-      fprintf(stdout, "\t# Inputfile: %s\n", input_file == 0 ? "in.lj.miniMD" : input_file);
-      fprintf(stdout, "\t# Datafile: %s\n", in_datafile ? in_datafile : "None");
+      fprintf(stdout, "\t# Datafile: %s\n", in_datafile.empty() ? "None" : in_datafile.c_str());
       fprintf(stdout, "# Physics Settings: \n");
       fprintf(stdout, "\t# ForceStyle: %s\n", in_forcetype == FORCELJ ? "LJ" : "EAM");
       fprintf(stdout, "\t# Force Parameters: %2.2lf %2.2lf\n",in_epsilon,in_sigma);
@@ -221,7 +233,6 @@ struct BlockKokkos {
       fprintf(stdout, "\t# Do safe exchange: %i\n", comm.do_safeexchange);
       fprintf(stdout, "\t# Size of float: %i\n\n", (int) sizeof(MMD_float));
     }
-    */
   }
 };
 

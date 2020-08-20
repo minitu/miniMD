@@ -40,8 +40,11 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
-Comm::Comm()
+/* readonly */ extern int num_chares;
+
+Comm::Comm(int index_)
 {
+  index = index_;
   maxsend = BUFMIN;
   buf_send = float_1d_view_type("Comm::buf_send",maxsend + BUFMIN);
   maxrecv = BUFMIN;
@@ -59,10 +62,8 @@ Comm::~Comm() {}
 int Comm::setup(MMD_float cutneigh, Atom &atom)
 {
   int i;
-  int periods[3];
   MMD_float prd[3];
   int myloc[3];
-  //MPI_Comm cartesian;
   MMD_float lo, hi;
   int ineed, idim, nbox;
 
@@ -70,12 +71,7 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   prd[1] = atom.box.yprd;
   prd[2] = atom.box.zprd;
 
-  /* setup 3-d grid of procs */
-
-  /*
-  MPI_Comm_rank(MPI_COMM_WORLD, &me);
-  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-  */
+  /* setup 3-d grid of chares */
 
   MMD_float area[3];
 
@@ -85,8 +81,8 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
 
   MMD_float bestsurf = 2.0 * (area[0] + area[1] + area[2]);
 
-  // loop thru all possible factorizations of nprocs
-  // surf = surface area of a proc sub-domain
+  // loop thru all possible factorizations of num_chares
+  // surf = surface area of a chare sub-domain
   // for 2d, insure ipz = 1
 
   int ipx, ipy, ipz, nremain;
@@ -94,21 +90,21 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
 
   ipx = 1;
 
-  while(ipx <= nprocs) {
-    if(nprocs % ipx == 0) {
-      nremain = nprocs / ipx;
+  while (ipx <= num_chares) {
+    if (num_chares % ipx == 0) {
+      nremain = num_chares / ipx;
       ipy = 1;
 
-      while(ipy <= nremain) {
-        if(nremain % ipy == 0) {
+      while (ipy <= nremain) {
+        if (nremain % ipy == 0) {
           ipz = nremain / ipy;
           surf = area[0] / ipx / ipy + area[1] / ipx / ipz + area[2] / ipy / ipz;
 
-          if(surf < bestsurf) {
+          if (surf < bestsurf) {
             bestsurf = surf;
-            procgrid[0] = ipx;
-            procgrid[1] = ipy;
-            procgrid[2] = ipz;
+            charegrid[0] = ipx;
+            charegrid[1] = ipy;
+            charegrid[2] = ipz;
           }
         }
 
@@ -119,39 +115,56 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
     ipx++;
   }
 
-  if(procgrid[0]*procgrid[1]*procgrid[2] != nprocs) {
-    if(me == 0) printf("ERROR: Bad grid of processors\n");
+  if (index == 0) {
+    printf("Chare grid: %d x %d x %d\n", charegrid[0], charegrid[1], charegrid[2]);
+  }
+
+  if (charegrid[0]*charegrid[1]*charegrid[2] != num_chares) {
+    if (index == 0) printf("ERROR: Bad grid of chares\n");
 
     return 1;
   }
 
-  /* determine where I am and my neighboring procs in 3d grid of procs */
+  /* determine where I am and my neighboring procs in 3d grid of chares */
+  myloc[0] = index % charegrid[0];
+  myloc[1] = (index / charegrid[0]) % charegrid[1];
+  myloc[2] = index / (charegrid[0] * charegrid[1]);
 
-  int reorder = 0;
-  periods[0] = periods[1] = periods[2] = 1;
+  if (myloc[0] == 0)              chareneigh[0][0] = charegrid[0]-1;
+  else                            chareneigh[0][0] = myloc[0]-1;
+  if (myloc[0] == charegrid[0]-1) chareneigh[0][1] = 0;
+  else                            chareneigh[0][1] = myloc[0]+1;
+  if (myloc[1] == 0)              chareneigh[1][0] = charegrid[1]-1;
+  else                            chareneigh[1][0] = myloc[1]-1;
+  if (myloc[1] == charegrid[1]-1) chareneigh[1][1] = 0;
+  else                            chareneigh[1][1] = myloc[1]+1;
+  if (myloc[2] == 0)              chareneigh[2][0] = charegrid[2]-1;
+  else                            chareneigh[2][0] = myloc[2]-1;
+  if (myloc[2] == charegrid[2]-1) chareneigh[2][1] = 0;
+  else                            chareneigh[2][1] = myloc[2]+1;
 
   /*
-  MPI_Cart_create(MPI_COMM_WORLD, 3, procgrid, periods, reorder, &cartesian);
-  MPI_Cart_get(cartesian, 3, procgrid, periods, myloc);
-  MPI_Cart_shift(cartesian, 0, 1, &procneigh[0][0], &procneigh[0][1]);
-  MPI_Cart_shift(cartesian, 1, 1, &procneigh[1][0], &procneigh[1][1]);
-  MPI_Cart_shift(cartesian, 2, 1, &procneigh[2][0], &procneigh[2][1]);
+  MPI_Cart_create(MPI_COMM_WORLD, 3, charegrid, periods, reorder, &cartesian);
+  MPI_Cart_get(cartesian, 3, charegrid, periods, myloc);
+  MPI_Cart_shift(cartesian, 0, 1, &chareneigh[0][0], &chareneigh[0][1]);
+  MPI_Cart_shift(cartesian, 1, 1, &chareneigh[1][0], &chareneigh[1][1]);
+  MPI_Cart_shift(cartesian, 2, 1, &chareneigh[2][0], &chareneigh[2][1]);
   */
 
   /* lo/hi = my local box bounds */
 
-  atom.box.xlo = myloc[0] * prd[0] / procgrid[0];
-  atom.box.xhi = (myloc[0] + 1) * prd[0] / procgrid[0];
-  atom.box.ylo = myloc[1] * prd[1] / procgrid[1];
-  atom.box.yhi = (myloc[1] + 1) * prd[1] / procgrid[1];
-  atom.box.zlo = myloc[2] * prd[2] / procgrid[2];
-  atom.box.zhi = (myloc[2] + 1) * prd[2] / procgrid[2];
+  atom.box.xlo = myloc[0] * prd[0] / charegrid[0];
+  atom.box.xhi = (myloc[0] + 1) * prd[0] / charegrid[0];
+  atom.box.ylo = myloc[1] * prd[1] / charegrid[1];
+  atom.box.yhi = (myloc[1] + 1) * prd[1] / charegrid[1];
+  atom.box.zlo = myloc[2] * prd[2] / charegrid[2];
+  atom.box.zhi = (myloc[2] + 1) * prd[2] / charegrid[2];
 
   /* need = # of boxes I need atoms from in each dimension */
 
-  need[0] = static_cast<int>(cutneigh * procgrid[0] / prd[0] + 1);
-  need[1] = static_cast<int>(cutneigh * procgrid[1] / prd[1] + 1);
-  need[2] = static_cast<int>(cutneigh * procgrid[2] / prd[2] + 1);
+  need[0] = static_cast<int>(cutneigh * charegrid[0] / prd[0] + 1);
+  need[1] = static_cast<int>(cutneigh * charegrid[1] / prd[1] + 1);
+  need[2] = static_cast<int>(cutneigh * charegrid[2] / prd[2] + 1);
 
   /* alloc comm memory */
 
@@ -165,8 +178,6 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   pbc_flagz = int_1d_host_view_type("Comm::pbc_flagz",maxswap);
   sendproc = int_1d_host_view_type("Comm::sendproc",maxswap);
   recvproc = int_1d_host_view_type("Comm::recvproc",maxswap);
-  sendproc_exc = int_1d_host_view_type("Comm::sendproc_exc",maxswap);
-  recvproc_exc = int_1d_host_view_type("Comm::recvproc_exc",maxswap);
   sendnum = int_1d_host_view_type("Comm::sendnum",maxswap);
   recvnum = int_1d_host_view_type("Comm::recvnum",maxswap);
   comm_send_size = int_1d_host_view_type("Comm::comm_send_size",maxswap);
@@ -177,16 +188,6 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   maxsendlist = int_1d_host_view_type("Comm::maxsendlist",maxswap);
 
   int iswap = 0;
-
-  /*
-  for(int idim = 0; idim < 3; idim++)
-    for(int i = 1; i <= need[idim]; i++, iswap += 2) {
-      MPI_Cart_shift(cartesian, idim, i, &sendproc_exc[iswap], &sendproc_exc[iswap + 1]);
-      MPI_Cart_shift(cartesian, idim, i, &recvproc_exc[iswap + 1], &recvproc_exc[iswap]);
-    }
-
-  MPI_Comm_free(&cartesian);
-  */
 
   for(i = 0; i < maxswap; i++) maxsendlist[i] = BUFMIN;
 
@@ -216,10 +217,10 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
       pbc_flagz[nswap] = 0;
 
       if(ineed % 2 == 0) {
-        sendproc[nswap] = procneigh[idim][0];
-        recvproc[nswap] = procneigh[idim][1];
+        sendproc[nswap] = chareneigh[idim][0];
+        recvproc[nswap] = chareneigh[idim][1];
         nbox = myloc[idim] + ineed / 2;
-        lo = nbox * prd[idim] / procgrid[idim];
+        lo = nbox * prd[idim] / charegrid[idim];
 
         if(idim == 0) hi = atom.box.xlo + cutneigh;
 
@@ -227,7 +228,7 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
 
         if(idim == 2) hi = atom.box.zlo + cutneigh;
 
-        hi = MIN(hi, (nbox + 1) * prd[idim] / procgrid[idim]);
+        hi = MIN(hi, (nbox + 1) * prd[idim] / charegrid[idim]);
 
         if(myloc[idim] == 0) {
           pbc_any[nswap] = 1;
@@ -239,10 +240,10 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
           if(idim == 2) pbc_flagz[nswap] = 1;
         }
       } else {
-        sendproc[nswap] = procneigh[idim][1];
-        recvproc[nswap] = procneigh[idim][0];
+        sendproc[nswap] = chareneigh[idim][1];
+        recvproc[nswap] = chareneigh[idim][0];
         nbox = myloc[idim] - ineed / 2;
-        hi = (nbox + 1) * prd[idim] / procgrid[idim];
+        hi = (nbox + 1) * prd[idim] / charegrid[idim];
 
         if(idim == 0) lo = atom.box.xhi - cutneigh;
 
@@ -250,9 +251,9 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
 
         if(idim == 2) lo = atom.box.zhi - cutneigh;
 
-        lo = MAX(lo, nbox * prd[idim] / procgrid[idim]);
+        lo = MAX(lo, nbox * prd[idim] / charegrid[idim]);
 
-        if(myloc[idim] == procgrid[idim] - 1) {
+        if(myloc[idim] == charegrid[idim] - 1) {
           pbc_any[nswap] = 1;
 
           if(idim == 0) pbc_flagx[nswap] = -1;
@@ -292,7 +293,7 @@ void Comm::communicate(Atom &atom)
     pbc_flags[3] = pbc_flagz[iswap];
 
     int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
-    if(sendproc[iswap] != me) {
+    if(sendproc[iswap] != index) {
       atom.pack_comm(sendnum[iswap], list, buf_send, pbc_flags);
       Kokkos::fence();
     /* exchange with another proc
@@ -337,7 +338,7 @@ void Comm::reverse_communicate(Atom &atom)
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
-    if(sendproc[iswap] != me) {
+    if(sendproc[iswap] != index) {
 
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
@@ -381,7 +382,7 @@ void Comm::exchange(Atom &atom_)
   for(idim = 0; idim < 3; idim++) {
     /* only exchange if more than one proc in this dimension */
 
-    if(procgrid[idim] == 1) continue;
+    if(charegrid[idim] == 1) continue;
 
     /* fill buffer with atoms leaving my box
        when atom is deleted, fill it in with last atom */
@@ -456,14 +457,14 @@ void Comm::exchange(Atom &atom_)
     nsend = count.h_view(0) * 7;
 
     /*
-      MPI_Sendrecv(&nsend, 1, MPI_INT, procneigh[idim][0], 0,
-                   &nrecv1, 1, MPI_INT, procneigh[idim][1], 0,
+      MPI_Sendrecv(&nsend, 1, MPI_INT, chareneigh[idim][0], 0,
+                   &nrecv1, 1, MPI_INT, chareneigh[idim][1], 0,
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       nrecv = nrecv1;
 
-      if(procgrid[idim] > 2) {
-        MPI_Sendrecv(&nsend, 1, MPI_INT, procneigh[idim][1], 0,
-                     &nrecv2, 1, MPI_INT, procneigh[idim][0], 0,
+      if(charegrid[idim] > 2) {
+        MPI_Sendrecv(&nsend, 1, MPI_INT, chareneigh[idim][1], 0,
+                     &nrecv2, 1, MPI_INT, chareneigh[idim][0], 0,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         nrecv += nrecv2;
       }
@@ -472,13 +473,13 @@ void Comm::exchange(Atom &atom_)
       Kokkos::fence();
 
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-      MPI_Sendrecv(buf_send.data(), nsend, type, procneigh[idim][0], 0,
-                   buf_recv.data(), nrecv1, type, procneigh[idim][1], 0,
+      MPI_Sendrecv(buf_send.data(), nsend, type, chareneigh[idim][0], 0,
+                   buf_recv.data(), nrecv1, type, chareneigh[idim][1], 0,
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-      if(procgrid[idim] > 2) {
-        MPI_Sendrecv(buf_send.data(), nsend, type, procneigh[idim][1], 0,
-                     buf_recv.data()+nrecv1, nrecv2, type, procneigh[idim][0], 0,
+      if(charegrid[idim] > 2) {
+        MPI_Sendrecv(buf_send.data(), nsend, type, chareneigh[idim][1], 0,
+                     buf_recv.data()+nrecv1, nrecv2, type, chareneigh[idim][0], 0,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
       */
@@ -637,7 +638,7 @@ void Comm::borders(Atom &atom_)
       if swapping with self, simply copy, no messages */
 
 
-        if(sendproc[iswap] != me) {
+        if(sendproc[iswap] != index) {
           /*
           MPI_Sendrecv(&nsend, 1, MPI_INT, sendproc[iswap], 0,
                        &nrecv, 1, MPI_INT, recvproc[iswap], 0,
