@@ -197,9 +197,9 @@ struct BlockKokkos {
 
       neighbor.setup(atom);
 
-      /*
       integrate.setup();
 
+      /*
       force->setup();
 
       if (in_forcetype == FORCEEAM) atom.mass = force->mass;
