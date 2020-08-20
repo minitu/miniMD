@@ -44,7 +44,8 @@ mainmodule miniMD {
   mainchare Main {
     entry Main(CkArgMsg* m);
     entry [reductiontarget] void kokkosInitialized();
-    entry [reductiontarget] void blocksCreated();
+    entry [reductiontarget] void blocksCreated1(CkReductionMsg* msg);
+    entry [reductiontarget] void blocksCreated2();
     entry [reductiontarget] void kokkosFinalized();
 
     entry void run() {
@@ -55,7 +56,26 @@ mainmodule miniMD {
         block_proxy = CProxy_Block::ckNew(num_chares);
       }
 
-      when blocksCreated() serial {
+      when blocksCreated1(CkReductionMsg* msg) serial {
+        CkPrintf("blocksCreated1\n");
+        double vxtot = 0;
+        double vytot = 0;
+        double vztot = 0;
+
+        CkReduction::setElement* current = (CkReduction::setElement*)msg->getData();
+        while (current != NULL) {
+          double* result = (double*)&current->data;
+          vxtot += result[0];
+          vytot += result[1];
+          vztot += result[2];
+          current = current->next();
+        }
+
+        block_proxy.vtotReduced(vxtot, vytot, vztot);
+      }
+
+      when blocksCreated2() serial {
+        CkPrintf("blocksCreated2\n");
         kokkos_proxy.finalize();
       }
 
@@ -73,6 +93,6 @@ mainmodule miniMD {
 
   array [1d] Block {
     entry Block();
-    entry void initDone();
+    entry void vtotReduced(double vxtot, double vytot, double vztot);
   };
 };

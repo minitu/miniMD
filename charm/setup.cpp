@@ -440,31 +440,33 @@ int create_atoms(Atom &atom, int nx, int ny, int nz, double rho,
 
 /* adjust initial velocities to give desired temperature */
 
-void create_velocity(double t_request, Atom &atom, Thermo &thermo)
+void create_velocity_1(Atom &atom, double& vxtot, double& vytot, double& vztot,
+    Kokkos::Cuda comm_instance)
 {
-  int i;
-
   /* zero center-of-mass motion */
   Kokkos::deep_copy(atom.h_v,atom.v);
-  double vxtot = 0.0;
-  double vytot = 0.0;
-  double vztot = 0.0;
+  vxtot = 0.0;
+  vytot = 0.0;
+  vztot = 0.0;
 
-  for(i = 0; i < atom.nlocal; i++) {
+  for(int i = 0; i < atom.nlocal; i++) {
     vxtot += atom.h_v(i,0);
     vytot += atom.h_v(i,1);
     vztot += atom.h_v(i,2);
   }
+}
 
-  double tmp;
+void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
+    double vxtot, double vytot, double vztot, Kokkos::Cuda comm_instance)
+{
   //MPI_Allreduce(&vxtot, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  vxtot = tmp / atom.natoms;
+  vxtot /= atom.natoms;
   //MPI_Allreduce(&vytot, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  vytot = tmp / atom.natoms;
+  vytot /= atom.natoms;
   //MPI_Allreduce(&vztot, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  vztot = tmp / atom.natoms;
+  vztot /= atom.natoms;
 
-  for(i = 0; i < atom.nlocal; i++) {
+  for (int i = 0; i < atom.nlocal; i++) {
     atom.h_v(i,0) -= vxtot;
     atom.h_v(i,1) -= vytot;
     atom.h_v(i,2) -= vztot;
@@ -478,7 +480,7 @@ void create_velocity(double t_request, Atom &atom, Thermo &thermo)
   double factor = sqrt(t_request / t);
   Kokkos::deep_copy(atom.h_v,atom.v);
 
-  for(i = 0; i < atom.nlocal; i++) {
+  for(int i = 0; i < atom.nlocal; i++) {
     atom.h_v(i,0) *= factor;
     atom.h_v(i,1) *= factor;
     atom.h_v(i,2) *= factor;

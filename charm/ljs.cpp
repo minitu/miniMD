@@ -274,6 +274,8 @@ class Block : public CBase_Block {
   cudaEvent_t compute_event;
   cudaEvent_t comm_event;
 
+  double vtot[3];
+
 public:
   Block() {
     // Create CUDA streams (higher priority for communication stream)
@@ -285,14 +287,16 @@ public:
     cudaEventCreateWithFlags(&comm_event, cudaEventDisableTiming);
 
     blockNew(&block, thisIndex, compute_stream, comm_stream, compute_event,
-        comm_event);
+        comm_event, vtot[0], vtot[1], vtot[2]);
 
-    CkCallback* cb = new CkCallback(CkIndex_Block::initDone(), thisProxy[thisIndex]);
-    hapiAddCallback(comm_stream, cb);
+    CkCallback cb(CkCallback(CkReductionTarget(Main, blocksCreated1), main_proxy));
+    contribute(3*sizeof(double), vtot, CkReduction::set, cb);
   }
 
-  void initDone() {
-    contribute(CkCallback(CkReductionTarget(Main, blocksCreated), main_proxy));
+  void vtotReduced(double vxtot, double vytot, double vztot) {
+    blockVelocity(block, vxtot, vytot, vztot);
+
+    contribute(CkCallback(CkReductionTarget(Main, blocksCreated2), main_proxy));
   }
 
   ~Block() { blockDelete(block); }

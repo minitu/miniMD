@@ -48,7 +48,10 @@
 extern void create_box(Atom& atom, int nx, int ny, int nz, double rho);
 extern int create_atoms(Atom& atom, int nx, int ny, int nz, double rho,
     Kokkos::Cuda comm_instance);
-extern void create_velocity(double t_request, Atom& atom, Thermo& thermo);
+extern void create_velocity_1(Atom &atom, double& vxtot, double& vytot,
+    double& vztot, Kokkos::Cuda comm_instance);
+extern void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
+    double vxtot, double vytot, double vztot, Kokkos::Cuda comm_instance);
 
 void kokkosInitialize(int num_threads, int teams, int device) {
   Kokkos::InitArguments args_kokkos;
@@ -84,7 +87,8 @@ struct BlockKokkos {
   Kokkos::Cuda comm_instance;
 
   BlockKokkos(int index_, cudaStream_t compute_stream_, cudaStream_t comm_stream_,
-      cudaEvent_t compute_event_, cudaEvent_t comm_event_) :
+      cudaEvent_t compute_event_, cudaEvent_t comm_event_, double& vxtot,
+      double& vytot, double& vztot) :
     index(index_), compute_stream(compute_stream_), comm_stream(comm_stream_),
     compute_event(compute_event_), comm_event(comm_event_),
     atom(ntypes), neighbor(ntypes), integrate(), thermo(), comm(index_) {
@@ -208,13 +212,20 @@ struct BlockKokkos {
 
       thermo.setup(in_rho, integrate, atom, in_units);
 
-      //create_velocity(in_t_request, atom, thermo);
+      create_velocity_1(atom, vxtot, vytot, vztot, comm_instance);
     }
+  }
 
-    if (index == 0)
-      printf("# Done .... \n");
+  void contCreateVelocity(double vxtot, double vytot, double vztot) {
+    if (in_datafile.empty()) {
+      create_velocity_2(in_t_request, atom, thermo, vxtot, vytot, vztot,
+          comm_instance);
+    }
+  }
 
+  void initDone() {
     if (index == 0) {
+      printf("# Done .... \n");
       fprintf(stdout, "# Charm++ + Kokkos MiniMD output ...\n");
       fprintf(stdout, "# Run Settings: \n");
       fprintf(stdout, "\t# Chares: %i\n", num_chares);
@@ -247,9 +258,16 @@ struct BlockKokkos {
 };
 
 void blockNew(void** block, int index, cudaStream_t compute_stream,
-    cudaStream_t comm_stream, cudaEvent_t compute_event, cudaEvent_t comm_event) {
+    cudaStream_t comm_stream, cudaEvent_t compute_event, cudaEvent_t comm_event,
+    double& vxtot, double& vytot, double& vztot) {
   *block = (void*)new BlockKokkos(index, compute_stream, comm_stream, compute_event,
-      comm_event);
+      comm_event, vxtot, vytot, vztot);
+}
+
+void blockVelocity(void* block, double vxtot, double vytot, double vztot) {
+  BlockKokkos* block_kokkos = static_cast<BlockKokkos*>(block);
+  block_kokkos->contCreateVelocity(vxtot, vytot, vztot);
+  block_kokkos->initDone();
 }
 
 void blockDelete(void* block) {
