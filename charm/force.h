@@ -40,6 +40,9 @@
 class Force
 {
   public:
+    Kokkos::Cuda compute_instance;
+    Kokkos::Cuda comm_instance;
+
     MMD_float cutforce;
     float_1d_rnd_view_type cutforcesq;
     MMD_float eng_vdwl;

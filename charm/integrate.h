@@ -42,6 +42,9 @@ class Integrate
     struct TagInitialIntegrate {};
     struct TagFinalIntegrate {};
 
+    Kokkos::Cuda compute_instance;
+    Kokkos::Cuda comm_instance;
+
     MMD_float dt;
     MMD_float dtforce;
     MMD_int ntimes;

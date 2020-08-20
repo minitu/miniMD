@@ -47,6 +47,9 @@ class Comm
     struct TagBorderUnpack {};
     typedef int value_type;
 
+    Kokkos::Cuda compute_instance;
+    Kokkos::Cuda comm_instance;
+
     KOKKOS_INLINE_FUNCTION
     void operator() (TagExchangeSendlist, const int&  ) const;
     KOKKOS_INLINE_FUNCTION

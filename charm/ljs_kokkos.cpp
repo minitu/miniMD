@@ -88,18 +88,28 @@ struct BlockKokkos {
     compute_event(compute_event_), comm_event(comm_event_),
     atom(ntypes), neighbor(ntypes), integrate(), thermo(), comm(index_) {
 
-    // Create separate execution instances with CUDA streams
-    compute_instance = Kokkos::Cuda(compute_stream);
-    comm_instance = Kokkos::Cuda(comm_stream);
-
     force = NULL;
     if (in_forcetype == FORCEEAM) {
       force = (Force*) new ForceEAM(ntypes);
+    } else if (in_forcetype == FORCELJ) {
+      force = (Force*) new ForceLJ(ntypes);
     }
 
-    if (in_forcetype == FORCELJ) {
-      force = (Force*) new ForceLJ(ntypes);
+    // Create separate execution instances with CUDA streams
+    compute_instance = Kokkos::Cuda(compute_stream);
+    comm_instance = Kokkos::Cuda(comm_stream);
+    atom.compute_instance = compute_instance;
+    atom.comm_instance = comm_instance;
+    neighbor.compute_instance = compute_instance;
+    neighbor.comm_instance = comm_instance;
+    integrate.compute_instance = compute_instance;
+    integrate.comm_instance = comm_instance;
+    thermo.compute_instance = compute_instance;
+    thermo.comm_instance = comm_instance;
+    force->compute_instance = compute_instance;
+    force->comm_instance = comm_instance;
 
+    if (in_forcetype == FORCELJ) {
       float_1d_view_type d_epsilon("ForceLJ::epsilon", ntypes*ntypes);
       float_1d_host_view_type h_epsilon = Kokkos::create_mirror_view(d_epsilon);
       force->epsilon = d_epsilon;
@@ -185,9 +195,9 @@ struct BlockKokkos {
 
       comm.setup(neighbor.cutneigh, atom);
 
-      /*
       neighbor.setup(atom);
 
+      /*
       integrate.setup();
 
       force->setup();

@@ -53,6 +53,9 @@ class Thermo
     MMD_float* engarr;
     MMD_float* prsarr;
 
+    Kokkos::Cuda compute_instance;
+    Kokkos::Cuda comm_instance;
+
     Thermo();
     ~Thermo();
     void setup(MMD_float, Integrate &integrate, Atom &atom, MMD_int);

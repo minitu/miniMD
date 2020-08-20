@@ -44,6 +44,9 @@ class Neighbor
     template<int HALF_NEIGH,bool STACK_ARRAYS>
     struct TagNeighborBuild {};
 
+    Kokkos::Cuda compute_instance;
+    Kokkos::Cuda comm_instance;
+
     int every;                       // re-neighbor every this often
     int nbinx, nbiny, nbinz;         // # of global bins
     MMD_float cutneigh;              // neighbor cutoff

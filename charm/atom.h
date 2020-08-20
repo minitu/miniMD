@@ -58,6 +58,9 @@ class Atom
     struct TagAtomUnpackReverse {};
     struct TagAtomSort {};
 
+    Kokkos::Cuda compute_instance;
+    Kokkos::Cuda comm_instance;
+
     typedef int value_type;
     int natoms;
     int nlocal, nghost;
