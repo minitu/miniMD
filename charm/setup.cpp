@@ -317,7 +317,8 @@ void create_box(Atom &atom, int nx, int ny, int nz, double rho)
 
 /* initialize atoms on fcc lattice in parallel fashion */
 
-int create_atoms(Atom &atom, int nx, int ny, int nz, double rho)
+int create_atoms(Atom &atom, int nx, int ny, int nz, double rho,
+    Kokkos::Cuda comm_instance)
 {
   /* total # of atoms */
 
@@ -426,33 +427,13 @@ int create_atoms(Atom &atom, int nx, int ny, int nz, double rho)
     }
   }
 
+  // TODO
   /* check for overflows on any proc */
-
-  int me;
-  //MPI_Comm_rank(MPI_COMM_WORLD, &me);
-
-  int iflagall;
-  //MPI_Allreduce(&iflag, &iflagall, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-
-  if(iflagall) {
-    if(me == 0) printf("No memory for atoms\n");
-
-    return 1;
-  }
-
   /* check that correct # of atoms were created */
 
-  int natoms;
-  //MPI_Allreduce(&atom.nlocal, &natoms, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
-  if(natoms != atom.natoms) {
-    if(me == 0) printf("Created incorrect # of atoms\n");
-
-    return 1;
-  }
-  Kokkos::deep_copy(atom.x,atom.h_x);
-  Kokkos::deep_copy(atom.v,atom.h_v);
-  Kokkos::deep_copy(atom.type,atom.h_type);
+  Kokkos::deep_copy(comm_instance, atom.x, atom.h_x);
+  Kokkos::deep_copy(comm_instance, atom.v, atom.h_v);
+  Kokkos::deep_copy(comm_instance, atom.type, atom.h_type);
 
   return 0;
 }

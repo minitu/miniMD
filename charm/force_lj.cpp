@@ -95,7 +95,7 @@ void ForceLJ::setup()
       cutforcesq_s[i] = cutforce * cutforce;
   }
 
-  Kokkos::deep_copy(d_cut,h_cut);
+  Kokkos::deep_copy(comm_instance, d_cut,h_cut);
 }
 
 

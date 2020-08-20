@@ -46,7 +46,8 @@
 /* readonly */ extern int in_thermo_nstat;
 
 extern void create_box(Atom& atom, int nx, int ny, int nz, double rho);
-extern int create_atoms(Atom& atom, int nx, int ny, int nz, double rho);
+extern int create_atoms(Atom& atom, int nx, int ny, int nz, double rho,
+    Kokkos::Cuda comm_instance);
 extern void create_velocity(double t_request, Atom& atom, Thermo& thermo);
 
 void kokkosInitialize(int num_threads, int teams, int device) {
@@ -199,16 +200,15 @@ struct BlockKokkos {
 
       integrate.setup();
 
-      /*
       force->setup();
 
       if (in_forcetype == FORCEEAM) atom.mass = force->mass;
 
-      create_atoms(atom, in_nx, in_ny, in_nz, in_rho);
+      create_atoms(atom, in_nx, in_ny, in_nz, in_rho, comm_instance);
+
       thermo.setup(in_rho, integrate, atom, in_units);
 
-      create_velocity(in_t_request, atom, thermo);
-      */
+      //create_velocity(in_t_request, atom, thermo);
     }
 
     if (index == 0)
