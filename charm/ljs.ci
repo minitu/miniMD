@@ -1,4 +1,6 @@
 mainmodule miniMD {
+  include "types.h";
+
   readonly int num_threads;
   readonly int teams;
   readonly int num_steps;
@@ -17,6 +19,22 @@ mainmodule miniMD {
   readonly int yaml_output;
   readonly int yaml_screen;
   readonly int ghost_newton;
+  readonly int in_nx;
+  readonly int in_ny;
+  readonly int in_nz;
+  readonly MMD_float in_t_request;
+  readonly MMD_float in_rho;
+  readonly int in_units;
+  readonly ForceStyle in_forcetype;
+  readonly MMD_float in_epsilon;
+  readonly MMD_float in_sigma;
+  readonly std::string in_datafile;
+  readonly int in_ntimes;
+  readonly MMD_float in_dt;
+  readonly int in_neigh_every;
+  readonly MMD_float in_force_cut;
+  readonly MMD_float in_neigh_cut;
+  readonly int in_thermo_nstat;
 
   mainchare Main {
     entry Main(CkArgMsg* m);

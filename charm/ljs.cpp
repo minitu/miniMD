@@ -2,7 +2,7 @@
 #include "pup_stl.h"
 #include "hapi.h"
 
-#include "ljs.h"
+#include "types.h"
 #include "ljs_kokkos_api.h"
 
 #include <stdio.h>
@@ -30,8 +30,29 @@
 /* readonly */ int yaml_output;
 /* readonly */ int yaml_screen;
 /* readonly */ int ghost_newton;
+/* readonly */ int in_nx;
+/* readonly */ int in_ny;
+/* readonly */ int in_nz;
+/* readonly */ MMD_float in_t_request;
+/* readonly */ MMD_float in_rho;
+/* readonly */ int in_units;
+/* readonly */ ForceStyle in_forcetype;
+/* readonly */ MMD_float in_epsilon;
+/* readonly */ MMD_float in_sigma;
+/* readonly */ std::string in_datafile;
+/* readonly */ int in_ntimes;
+/* readonly */ MMD_float in_dt;
+/* readonly */ int in_neigh_every;
+/* readonly */ MMD_float in_force_cut;
+/* readonly */ MMD_float in_neigh_cut;
+/* readonly */ int in_thermo_nstat;
 
-extern int input(In& in, const char* filename);
+extern int input(const char* filename, int& in_nx, int& in_ny, int& in_nz,
+    MMD_float& in_t_request, MMD_float& in_rho, int& in_units,
+    ForceStyle& in_forcetype, MMD_float& in_epsilon, MMD_float& in_sigma,
+    std::string& in_datafile, int& in_ntimes, MMD_float& in_dt,
+    int& in_neigh_every, MMD_float& in_force_cut, MMD_float& in_neigh_cut,
+    int& in_thermo_nstat);
 
 class Main : public CBase_Main {
 public:
@@ -55,8 +76,6 @@ public:
     ghost_newton = 1;
 
     // Process input file
-    In in;
-    in.datafile = nullptr;
     char* input_file = nullptr;
 
     for (int i = 0; i < m->argc; i++) {
@@ -68,9 +87,15 @@ public:
 
     int error = 0;
     if (input_file == nullptr) {
-      error = input(in, "../inputs/in.lj.miniMD");
+      error = input("../inputs/in.lj.miniMD", in_nx, in_ny, in_nz, in_t_request,
+          in_rho, in_units, in_forcetype, in_epsilon, in_sigma, in_datafile,
+          in_ntimes, in_dt, in_neigh_every, in_force_cut, in_neigh_cut,
+          in_thermo_nstat);
     } else {
-      error = input(in, input_file);
+      error = input(input_file, in_nx, in_ny, in_nz, in_t_request,
+          in_rho, in_units, in_forcetype, in_epsilon, in_sigma, in_datafile,
+          in_ntimes, in_dt, in_neigh_every, in_force_cut, in_neigh_cut,
+          in_thermo_nstat);
     }
 
     if (error) {
@@ -168,19 +193,17 @@ public:
       }
 
       if ((strcmp(m->argv[i], "-f") == 0) || (strcmp(m->argv[i], "--data_file") == 0)) {
-        if (in.datafile == NULL) in.datafile = new char[1000];
-
-        strcpy(in.datafile, m->argv[++i]);
+        in_datafile = std::string(m->argv[++i]);
         continue;
       }
 
       if ((strcmp(m->argv[i], "-u") == 0) || (strcmp(m->argv[i], "--units") == 0)) {
-        in.units = strcmp(m->argv[++i], "metal") == 0 ? 1 : 0;
+        in_units = strcmp(m->argv[++i], "metal") == 0 ? 1 : 0;
         continue;
       }
 
       if ((strcmp(m->argv[i], "-p") == 0) || (strcmp(m->argv[i], "--force") == 0)) {
-        in.forcetype = strcmp(m->argv[++i], "eam") == 0 ? FORCEEAM : FORCELJ;
+        in_forcetype = strcmp(m->argv[++i], "eam") == 0 ? FORCEEAM : FORCELJ;
         continue;
       }
 
@@ -188,6 +211,11 @@ public:
         ghost_newton = atoi(m->argv[++i]);
         continue;
       }
+    }
+
+    if (in_forcetype == FORCEEAM && ghost_newton == 1) {
+      printf("# EAM currently requires '--ghost_newton 0'; Changing setting now.\n");
+      ghost_newton = 0;
     }
 
     // Create KokkosManagers on each process
@@ -223,10 +251,10 @@ public:
 };
 
 class Block : public CBase_Block {
+  void* block;
 public:
-  Block() {
-    blockKokkos();
-  }
+  Block() { blockNew(&block); }
+  ~Block() { blockDelete(block); }
 };
 
 #include "miniMD.def.h"

@@ -32,13 +32,18 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <string>
 
-#include "ljs.h"
 #include "types.h"
 
 #define MAXLINE 256
 
-int input(In &in, const char* filename)
+int input(const char* filename, int& in_nx, int& in_ny, int& in_nz,
+    MMD_float& in_t_request, MMD_float& in_rho, int& in_units,
+    ForceStyle& in_forcetype, MMD_float& in_epsilon, MMD_float& in_sigma,
+    std::string& in_datafile, int& in_ntimes, MMD_float& in_dt,
+    int& in_neigh_every, MMD_float& in_force_cut, MMD_float& in_neigh_cut,
+    int& in_thermo_nstat)
 {
   FILE* fp;
   char line[MAXLINE];
@@ -55,8 +60,8 @@ int input(In &in, const char* filename)
   fgets(line, MAXLINE, fp);
   fgets(line, MAXLINE, fp);
 
-  if(strcmp(strtok(line, " \t\n"), "lj") == 0) in.units = 0;
-  else if(strcmp(strtok(line, " \t\n"), "metal") == 0) in.units = 1;
+  if(strcmp(strtok(line, " \t\n"), "lj") == 0) in_units = 0;
+  else if(strcmp(strtok(line, " \t\n"), "metal") == 0) in_units = 1;
   else {
     printf("Unknown units option in file at line 3 ('%s'). Expecting either 'lj' or 'metal'.\n", line);
     return -1;
@@ -64,43 +69,42 @@ int input(In &in, const char* filename)
 
   fgets(line, MAXLINE, fp);
 
-  if(strcmp(strtok(line, " \t\n"), "none") == 0) in.datafile = NULL;
+  if(strcmp(strtok(line, " \t\n"), "none") == 0) in_datafile = std::string();
   else {
-    in.datafile = new char[1000];
     char* ptr = strtok(line, " \t");
 
     if(ptr == NULL) ptr = line;
 
-    strcpy(in.datafile, ptr);
+    in_datafile = std::string(ptr);
   }
 
   fgets(line, MAXLINE, fp);
 
-  if(strcmp(strtok(line, " \t\n"), "lj") == 0) in.forcetype = FORCELJ;
-  else if(strcmp(strtok(line, " \t\n"), "eam") == 0) in.forcetype = FORCEEAM;
+  if(strcmp(strtok(line, " \t\n"), "lj") == 0) in_forcetype = FORCELJ;
+  else if(strcmp(strtok(line, " \t\n"), "eam") == 0) in_forcetype = FORCEEAM;
   else {
     printf("Unknown forcetype option in file at line 5 ('%s'). Expecting either 'lj' or 'eam'.\n", line);
     return -1;
   }
 
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%e %e", &in.epsilon, &in.sigma);
+  sscanf(line, "%e %e", &in_epsilon, &in_sigma);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%d %d %d", &in.nx, &in.ny, &in.nz);
+  sscanf(line, "%d %d %d", &in_nx, &in_ny, &in_nz);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%d", &in.ntimes);
+  sscanf(line, "%d", &in_ntimes);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%e", &in.dt);
+  sscanf(line, "%e", &in_dt);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%e", &in.t_request);
+  sscanf(line, "%e", &in_t_request);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%e", &in.rho);
+  sscanf(line, "%e", &in_rho);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%d", &in.neigh_every);
+  sscanf(line, "%d", &in_neigh_every);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%e %e", &in.force_cut, &in.neigh_cut);
+  sscanf(line, "%e %e", &in_force_cut, &in_neigh_cut);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%d", &in.thermo_nstat);
+  sscanf(line, "%d", &in_thermo_nstat);
   fclose(fp);
 #else
 #if PRECISION==2
@@ -108,8 +112,8 @@ int input(In &in, const char* filename)
   fgets(line, MAXLINE, fp);
   fgets(line, MAXLINE, fp);
 
-  if(strcmp(strtok(line, " \t\n"), "lj") == 0) in.units = 0;
-  else if(strcmp(line, "metal") == 0) in.units = 1;
+  if(strcmp(strtok(line, " \t\n"), "lj") == 0) in_units = 0;
+  else if(strcmp(line, "metal") == 0) in_units = 1;
   else {
     printf("Unknown units option in file at line 3 ('%s'). Expecting either 'lj' or 'metal'.\n", line);
     return -1;
@@ -117,43 +121,42 @@ int input(In &in, const char* filename)
 
   fgets(line, MAXLINE, fp);
 
-  if(strcmp(strtok(line, " \t\n"), "none") == 0) in.datafile = NULL;
+  if(strcmp(strtok(line, " \t\n"), "none") == 0) in_datafile = std::string();
   else {
-    in.datafile = new char[1000];
     char* ptr = strtok(line, " \t");
 
     if(ptr == NULL) ptr = line;
 
-    strcpy(in.datafile, ptr);
+    in_datafile = std::string(ptr);
   }
 
   fgets(line, MAXLINE, fp);
 
-  if(strcmp(strtok(line, " \t\n"), "lj") == 0) in.forcetype = FORCELJ;
-  else if(strcmp(line, "eam") == 0) in.forcetype = FORCEEAM;
+  if(strcmp(strtok(line, " \t\n"), "lj") == 0) in_forcetype = FORCELJ;
+  else if(strcmp(line, "eam") == 0) in_forcetype = FORCEEAM;
   else {
     printf("Unknown forcetype option in file at line 5 ('%s'). Expecting either 'lj' or 'eam'.\n", line);
     return -1;
   }
 
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%le %le", &in.epsilon, &in.sigma);
+  sscanf(line, "%le %le", &in_epsilon, &in_sigma);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%d %d %d", &in.nx, &in.ny, &in.nz);
+  sscanf(line, "%d %d %d", &in_nx, &in_ny, &in_nz);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%d", &in.ntimes);
+  sscanf(line, "%d", &in_ntimes);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%le", &in.dt);
+  sscanf(line, "%le", &in_dt);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%le", &in.t_request);
+  sscanf(line, "%le", &in_t_request);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%le", &in.rho);
+  sscanf(line, "%le", &in_rho);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%d", &in.neigh_every);
+  sscanf(line, "%d", &in_neigh_every);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%le %le", &in.force_cut, &in.neigh_cut);
+  sscanf(line, "%le %le", &in_force_cut, &in_neigh_cut);
   fgets(line, MAXLINE, fp);
-  sscanf(line, "%d", &in.thermo_nstat);
+  sscanf(line, "%d", &in_thermo_nstat);
   fclose(fp);
 #else
   printf("Invalid MMD_float size specified: crash imminent.\n");
@@ -161,7 +164,7 @@ int input(In &in, const char* filename)
 #endif
 #endif
 
-  in.neigh_cut += in.force_cut;
+  in_neigh_cut += in_force_cut;
 
   return 0;
 }
