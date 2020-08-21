@@ -380,6 +380,23 @@ public:
     }
 #endif
 
+    if (neighbor_size > 0) {
+      neighbor.nbinx = neighbor_size;
+      neighbor.nbiny = neighbor_size;
+      neighbor.nbinz = neighbor_size;
+    }
+
+    if (neighbor_size < 0 && in_datafile.empty()) {
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_ROCM)
+      MMD_float neighscale = 0.6;
+#else
+      MMD_float neighscale = 5.0 / 6.0;
+#endif
+      neighbor.nbinx = neighscale * in_nx;
+      neighbor.nbiny = neighscale * in_ny;
+      neighbor.nbinz = neighscale * in_nz;
+    }
+
     if (neighbor_size < 0 && !in_datafile.empty())
       neighbor.nbinx = -1;
 
