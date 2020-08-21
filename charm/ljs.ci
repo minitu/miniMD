@@ -45,8 +45,9 @@ mainmodule miniMD {
   mainchare Main {
     entry Main(CkArgMsg* m);
     entry [reductiontarget] void kokkosInitialized();
-    entry [reductiontarget] void blocksCreated1(CkReductionMsg* msg);
-    entry [reductiontarget] void blocksCreated2();
+    entry [reductiontarget] void reduceVelocity(CkReductionMsg* msg);
+    entry [reductiontarget] void blocksCreated();
+    entry [reductiontarget] void blocksDone();
     entry [reductiontarget] void kokkosFinalized();
 
     entry void run() {
@@ -57,8 +58,7 @@ mainmodule miniMD {
         block_proxy = CProxy_Block::ckNew(num_chares);
       }
 
-      when blocksCreated1(CkReductionMsg* msg) serial {
-        CkPrintf("blocksCreated1\n");
+      when reduceVelocity(CkReductionMsg* msg) serial {
         double vxtot = 0;
         double vytot = 0;
         double vztot = 0;
@@ -72,11 +72,16 @@ mainmodule miniMD {
           current = current->next();
         }
 
-        block_proxy.vtotReduced(vxtot, vytot, vztot);
+        block_proxy.contCreateVelocity(vxtot, vytot, vztot);
       }
 
-      when blocksCreated2() serial {
-        CkPrintf("blocksCreated2\n");
+      when blocksCreated() serial {
+        CkPrintf("blocksCreated\n");
+        block_proxy.run();
+      }
+
+      when blocksDone() serial {
+        CkPrintf("blocksDone\n");
         kokkos_proxy.finalize();
       }
 
@@ -94,6 +99,23 @@ mainmodule miniMD {
 
   array [1d] Block {
     entry Block();
-    entry void vtotReduced(double vxtot, double vytot, double vztot);
+    entry void contCreateVelocity(double vxtot, double vytot, double vztot);
+    entry void run() {
+      serial { CkPrintf("Block %d running...\n", thisIndex); }
+
+      serial "preprocess" {
+      }
+
+      // Loop over integrate iterations
+      for (iter = 0; iter < in_ntimes; iter++) {
+      }
+
+      serial "postprocess" {
+      }
+
+      serial {
+        contribute(CkCallback(CkReductionTarget(Main, blocksDone), main_proxy));
+      }
+    }
   };
 };

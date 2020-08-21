@@ -283,12 +283,16 @@ public:
 };
 
 class Block : public CBase_Block {
+  Block_SDAG_CODE
+
   Atom atom;
   Neighbor neighbor;
   Integrate integrate;
   Thermo thermo;
   Comm comm;
   Force* force;
+
+  int iter;
 
   cudaStream_t compute_stream;
   cudaStream_t comm_stream;
@@ -450,11 +454,11 @@ public:
       create_velocity_1(atom, vtot[0], vtot[1], vtot[2], comm_instance);
     }
 
-    CkCallback cb(CkCallback(CkReductionTarget(Main, blocksCreated1), main_proxy));
+    CkCallback cb(CkCallback(CkReductionTarget(Main, reduceVelocity), main_proxy));
     contribute(3*sizeof(double), vtot, CkReduction::set, cb);
   }
 
-  void vtotReduced(double vxtot, double vytot, double vztot) {
+  void contCreateVelocity(double vxtot, double vytot, double vztot) {
     if (in_datafile.empty()) {
       create_velocity_2(in_t_request, atom, thermo, vxtot, vytot, vztot,
           comm_instance);
@@ -462,7 +466,7 @@ public:
 
     printConfig();
 
-    contribute(CkCallback(CkReductionTarget(Main, blocksCreated2), main_proxy));
+    contribute(CkCallback(CkReductionTarget(Main, blocksCreated), main_proxy));
   }
 
   void printConfig() {
@@ -497,7 +501,6 @@ public:
       CkPrintf("\t# Do safe exchange: %i\n", comm.do_safeexchange);
       CkPrintf("\t# Size of float: %i\n\n", (int) sizeof(MMD_float));
     }
-
   }
 
   ~Block() {}
