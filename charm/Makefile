@@ -7,10 +7,11 @@ CUDA_INC = $(CUDA_PATH)/include
 CUDA_LIB = $(CUDA_PATH)/lib64
 
 NVCC_WRAPPER = $(KOKKOS_PATH)/bin/nvcc_wrapper
-NVCC_OPTS = -O3 -std=c++11 -fopenmp
+OPTS = -O3
 
 CHARM_PATH = $(HOME)/work/charm
-CHARMC = $(CHARM_PATH)/bin/charmc $(OPTS)
+CHARMC = $(CHARM_PATH)/bin/charmc -c++ $(NVCC_WRAPPER) $(OPTS)
+CHARM_LD = $(CHARM_PATH)/bin/charmc $(OPTS)
 CHARM_INC = $(HOME)/work/charm/include
 
 TARGET = miniMD
@@ -18,13 +19,13 @@ TARGET = miniMD
 all: $(TARGET)
 
 $(TARGET): ljs.o ljs_kokkos.o input.o atom.o neighbor.o comm.o force_eam.o force_lj.o integrate.o thermo.o setup.o
-	$(CHARMC) -language charm++ -fopenmp -L$(KOKKOS_LIB) -lkokkoscore -L$(CUDA_LIB) -o $@ $^
+	$(CHARM_LD) -language charm++ -L$(KOKKOS_LIB) -lkokkoscore -L$(CUDA_LIB) -o $@ $^
 
 ljs.o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h ljs_kokkos.h
-	$(CHARMC) -I$(KOKKOS_INC) -fopenmp -c $<
+	$(CHARMC) -I$(KOKKOS_INC) -c $<
 
 ljs_kokkos.o: ljs_kokkos.cpp ljs_kokkos.h
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) $<
 
 $(TARGET).decl.h: ljs.ci
 	$(CHARMC) $<
@@ -35,28 +36,28 @@ input.o: input.cpp
 	$(CHARMC) -c $<
 
 atom.o: atom.cpp atom.h
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) $<
 
 neighbor.o: neighbor.cpp neighbor.h
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 comm.o: comm.cpp comm.h
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 force_eam.o: force_eam.cpp force_eam.h
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 force_lj.o: force_lj.cpp force_lj.h
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 integrate.o: integrate.cpp integrate.h
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 thermo.o: thermo.cpp thermo.h
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 setup.o: setup.cpp
-	$(NVCC_WRAPPER) $(NVCC_OPTS) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
+	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 clean:
 	rm -f $(TARGET) *.decl.h *.def.h *.o charmrun
