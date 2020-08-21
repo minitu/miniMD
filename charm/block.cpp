@@ -53,8 +53,8 @@ extern void create_velocity_1(Atom &atom, double& vxtot, double& vytot,
 extern void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
     double vxtot, double vytot, double vztot, Kokkos::Cuda comm_instance);
 
-Block::Block() : atom(nullptr), neighbor(nullptr), integrate(nullptr),
-  thermo(nullptr), comm(nullptr), force(nullptr) {
+Block::Block() : atom(ntypes), neighbor(ntypes), integrate(), thermo(),
+  comm(nullptr), force(nullptr) {
   contribute(CkCallback(CkReductionTarget(Main, blockCreated), main_proxy));
 }
 
@@ -71,10 +71,6 @@ void Block::init() {
   cudaEventCreateWithFlags(&comm_event, cudaEventDisableTiming);
 
   // Create member objects
-  atom = new Atom(ntypes);
-  neighbor = new Neighbor(ntypes);
-  integrate = new Integrate;
-  thermo = new Thermo;
   if (in_forcetype == FORCEEAM) {
     force = (Force*) new ForceEAM(ntypes);
   } else if (in_forcetype == FORCELJ) {
@@ -84,14 +80,14 @@ void Block::init() {
   // Create separate execution instances with CUDA streams
   compute_instance = Kokkos::Cuda(compute_stream);
   comm_instance = Kokkos::Cuda(comm_stream);
-  atom->compute_instance = compute_instance;
-  atom->comm_instance = comm_instance;
-  neighbor->compute_instance = compute_instance;
-  neighbor->comm_instance = comm_instance;
-  integrate->compute_instance = compute_instance;
-  integrate->comm_instance = comm_instance;
-  thermo->compute_instance = compute_instance;
-  thermo->comm_instance = comm_instance;
+  atom.compute_instance = compute_instance;
+  atom.comm_instance = comm_instance;
+  neighbor.compute_instance = compute_instance;
+  neighbor.comm_instance = comm_instance;
+  integrate.compute_instance = compute_instance;
+  integrate.comm_instance = comm_instance;
+  thermo.compute_instance = compute_instance;
+  thermo.comm_instance = comm_instance;
   force->compute_instance = compute_instance;
   force->comm_instance = comm_instance;
 
@@ -240,20 +236,20 @@ void Block::printConfig() {
     CkPrintf("\t# ForceStyle: %s\n", in_forcetype == FORCELJ ? "LJ" : "EAM");
     CkPrintf("\t# Force Parameters: %2.2lf %2.2lf\n",in_epsilon,in_sigma);
     CkPrintf("\t# Units: %s\n", in_units == 0 ? "LJ" : "METAL");
-    CkPrintf("\t# Atoms: %i\n", atom->natoms);
-    CkPrintf("\t# Atom types: %i\n", atom->ntypes);
-    CkPrintf("\t# System size: %2.2lf %2.2lf %2.2lf (unit cells: %i %i %i)\n", atom->box.xprd, atom->box.yprd, atom->box.zprd, in_nx, in_ny, in_nz);
+    CkPrintf("\t# Atoms: %i\n", atom.natoms);
+    CkPrintf("\t# Atom types: %i\n", atom.ntypes);
+    CkPrintf("\t# System size: %2.2lf %2.2lf %2.2lf (unit cells: %i %i %i)\n", atom.box.xprd, atom.box.yprd, atom.box.zprd, in_nx, in_ny, in_nz);
     CkPrintf("\t# Density: %lf\n", in_rho);
     CkPrintf("\t# Force cutoff: %lf\n", force->cutforce);
-    CkPrintf("\t# Timestep size: %lf\n", integrate->dt);
+    CkPrintf("\t# Timestep size: %lf\n", integrate.dt);
     CkPrintf("# Technical Settings: \n");
-    CkPrintf("\t# Neigh cutoff: %lf\n", neighbor->cutneigh);
-    CkPrintf("\t# Half neighborlists: %i\n", neighbor->halfneigh);
-    CkPrintf("\t# Team neighborlist construction: %i\n", neighbor->team_neigh_build);
-    CkPrintf("\t# Neighbor bins: %i %i %i\n", neighbor->nbinx, neighbor->nbiny, neighbor->nbinz);
-    CkPrintf("\t# Neighbor frequency: %i\n", neighbor->every);
-    CkPrintf("\t# Sorting frequency: %i\n", integrate->sort_every);
-    CkPrintf("\t# Thermo frequency: %i\n", thermo->nstat);
+    CkPrintf("\t# Neigh cutoff: %lf\n", neighbor.cutneigh);
+    CkPrintf("\t# Half neighborlists: %i\n", neighbor.halfneigh);
+    CkPrintf("\t# Team neighborlist construction: %i\n", neighbor.team_neigh_build);
+    CkPrintf("\t# Neighbor bins: %i %i %i\n", neighbor.nbinx, neighbor.nbiny, neighbor.nbinz);
+    CkPrintf("\t# Neighbor frequency: %i\n", neighbor.every);
+    CkPrintf("\t# Sorting frequency: %i\n", integrate.sort_every);
+    CkPrintf("\t# Thermo frequency: %i\n", thermo.nstat);
     CkPrintf("\t# Ghost Newton: %i\n", ghost_newton);
     CkPrintf("\t# Use intrinsics: %i\n", force->use_sse);
     CkPrintf("\t# Do safe exchange: %i\n", comm->do_safeexchange);

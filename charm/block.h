@@ -16,10 +16,10 @@
 class Block : public CBase_Block {
   Block_SDAG_CODE
 
-  Atom* atom;
-  Neighbor* neighbor;
-  Integrate* integrate;
-  Thermo* thermo;
+  Atom atom;
+  Neighbor neighbor;
+  Integrate integrate;
+  Thermo thermo;
   Comm* comm;
   Force* force;
 
