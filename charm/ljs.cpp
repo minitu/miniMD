@@ -3,14 +3,6 @@
 #include "hapi.h"
 
 #include "ljs_kokkos.h"
-#include "atom.h"
-#include "neighbor.h"
-#include "integrate.h"
-#include "thermo.h"
-#include "comm.h"
-#include "force.h"
-#include "force_lj.h"
-#include "force_eam.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +12,7 @@
 /* readonly */ CProxy_Main main_proxy;
 /* readonly */ CProxy_KokkosManager kokkos_proxy;
 /* readonly */ CProxy_Block block_proxy;
+/* readonly */ CProxy_Comm comm_proxy;
 /* readonly */ int num_chares;
 
 /* readonly */ std::string input_file;
@@ -64,13 +57,6 @@ extern int input(const char* filename, int& in_nx, int& in_ny, int& in_nz,
     std::string& in_datafile, int& in_ntimes, MMD_float& in_dt,
     int& in_neigh_every, MMD_float& in_force_cut, MMD_float& in_neigh_cut,
     int& in_thermo_nstat);
-extern void create_box(Atom& atom, int nx, int ny, int nz, double rho);
-extern int create_atoms(Atom& atom, int nx, int ny, int nz, double rho,
-    Kokkos::Cuda comm_instance);
-extern void create_velocity_1(Atom &atom, double& vxtot, double& vytot,
-    double& vztot, Kokkos::Cuda comm_instance);
-extern void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
-    double vxtot, double vytot, double vztot, Kokkos::Cuda comm_instance);
 
 class Main : public CBase_Main {
   Main_SDAG_CODE
@@ -280,230 +266,6 @@ public:
 
     contribute(CkCallback(CkReductionTarget(Main, kokkosFinalized), main_proxy));
   }
-};
-
-class Block : public CBase_Block {
-  Block_SDAG_CODE
-
-  Atom atom;
-  Neighbor neighbor;
-  Integrate integrate;
-  Thermo thermo;
-  Comm comm;
-  Force* force;
-
-  int iter;
-
-  cudaStream_t compute_stream;
-  cudaStream_t comm_stream;
-
-  cudaEvent_t compute_event;
-  cudaEvent_t comm_event;
-
-  Kokkos::Cuda compute_instance;
-  Kokkos::Cuda comm_instance;
-
-  double vtot[3];
-
-public:
-  Block() : atom(ntypes), neighbor(ntypes), comm(thisIndex) {
-    // Create CUDA streams (higher priority for communication stream)
-    cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
-    cudaStreamCreateWithPriority(&comm_stream, cudaStreamDefault, -1);
-
-    // Create CUDA events used to preserve dependencies between streams
-    cudaEventCreateWithFlags(&compute_event, cudaEventDisableTiming);
-    cudaEventCreateWithFlags(&comm_event, cudaEventDisableTiming);
-
-    force = NULL;
-    if (in_forcetype == FORCEEAM) {
-      force = (Force*) new ForceEAM(ntypes);
-    } else if (in_forcetype == FORCELJ) {
-      force = (Force*) new ForceLJ(ntypes);
-    }
-
-    // Create separate execution instances with CUDA streams
-    compute_instance = Kokkos::Cuda(compute_stream);
-    comm_instance = Kokkos::Cuda(comm_stream);
-    atom.compute_instance = compute_instance;
-    atom.comm_instance = comm_instance;
-    neighbor.compute_instance = compute_instance;
-    neighbor.comm_instance = comm_instance;
-    integrate.compute_instance = compute_instance;
-    integrate.comm_instance = comm_instance;
-    thermo.compute_instance = compute_instance;
-    thermo.comm_instance = comm_instance;
-    force->compute_instance = compute_instance;
-    force->comm_instance = comm_instance;
-
-    if (in_forcetype == FORCELJ) {
-      float_1d_view_type d_epsilon("ForceLJ::epsilon", ntypes*ntypes);
-      float_1d_host_view_type h_epsilon = Kokkos::create_mirror_view(d_epsilon);
-      force->epsilon = d_epsilon;
-      force->epsilon_scalar = in_epsilon;
-
-      float_1d_view_type d_sigma6("ForceLJ::sigma6", ntypes*ntypes);
-      float_1d_host_view_type h_sigma6 = Kokkos::create_mirror_view(d_sigma6);
-      force->sigma6 = d_sigma6;
-
-      float_1d_view_type d_sigma("ForceLJ::sigma", ntypes*ntypes);
-      float_1d_host_view_type h_sigma = Kokkos::create_mirror_view(d_sigma);
-      force->sigma = d_sigma;
-      force->sigma_scalar = in_sigma;
-
-      for (int i=0; i< ntypes * ntypes; i++) {
-        h_epsilon[i] = in_epsilon;
-        h_sigma[i] = in_sigma;
-        h_sigma6[i] = in_sigma*in_sigma*in_sigma*in_sigma*in_sigma*in_sigma;
-        if (i < MAX_STACK_TYPES * MAX_STACK_TYPES) {
-          force->epsilon_s[i] = h_epsilon[i];
-          force->sigma6_s[i] = h_sigma6[i];
-        }
-      }
-
-      Kokkos::deep_copy(d_epsilon, h_epsilon);
-      Kokkos::deep_copy(d_sigma6, h_sigma6);
-      Kokkos::deep_copy(d_sigma, h_sigma);
-    }
-
-    neighbor.ghost_newton = ghost_newton;
-    comm.check_safeexchange = check_safeexchange;
-    comm.do_safeexchange = do_safeexchange;
-    force->use_sse = use_sse;
-    neighbor.halfneigh = halfneigh;
-    neighbor.team_neigh_build = team_neigh;
-    if (halfneigh < 0) force->use_oldcompute = 1;
-
-#ifdef VARIANT_REFERENCE
-    if (use_sse) {
-      if (thisIndex == 0) {
-        CkPrintf("ERROR: Trying to run with -sse with miniMD reference version. "
-            "Use SSE variant instead. Exiting.\n");
-        CkExit();
-      }
-    }
-#endif
-
-    if (neighbor_size > 0) {
-      neighbor.nbinx = neighbor_size;
-      neighbor.nbiny = neighbor_size;
-      neighbor.nbinz = neighbor_size;
-    }
-
-    if (neighbor_size < 0 && in_datafile.empty()) {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_ROCM)
-      MMD_float neighscale = 0.6;
-#else
-      MMD_float neighscale = 5.0 / 6.0;
-#endif
-      neighbor.nbinx = neighscale * in_nx;
-      neighbor.nbiny = neighscale * in_ny;
-      neighbor.nbinz = neighscale * in_nz;
-    }
-
-    if (neighbor_size < 0 && !in_datafile.empty())
-      neighbor.nbinx = -1;
-
-    if (neighbor.nbinx == 0) neighbor.nbinx = 1;
-    if (neighbor.nbiny == 0) neighbor.nbiny = 1;
-    if (neighbor.nbinz == 0) neighbor.nbinz = 1;
-
-    integrate.ntimes = in_ntimes;
-    integrate.dt = in_dt;
-    integrate.sort_every = sort>0?sort:(sort<0?in_neigh_every:0);
-    neighbor.every = in_neigh_every;
-    neighbor.cutneigh = in_neigh_cut;
-    force->cutforce = in_force_cut;
-    thermo.nstat = in_thermo_nstat;
-
-    if (thisIndex == 0)
-      CkPrintf("# Create System:\n");
-
-    if (!in_datafile.empty()) {
-      if (thisIndex == 0) {
-        CkPrintf("Lammps data file not yet supported\n");
-        CkExit();
-      }
-
-      /* TODO
-      read_lammps_data(atom, comm, neighbor, integrate, thermo,
-          in_datafile.c_str(), in_units);
-      MMD_float volume = atom.box.xprd * atom.box.yprd * atom.box.zprd;
-      in_rho = 1.0 * atom.natoms / volume;
-      force->setup();
-
-      if (in_forcetype == FORCEEAM) atom.mass = force->mass;
-      */
-    } else {
-      create_box(atom, in_nx, in_ny, in_nz, in_rho);
-
-      comm.setup(neighbor.cutneigh, atom);
-
-      neighbor.setup(atom);
-
-      integrate.setup();
-
-      force->setup();
-
-      if (in_forcetype == FORCEEAM) atom.mass = force->mass;
-
-      create_atoms(atom, in_nx, in_ny, in_nz, in_rho, comm_instance);
-
-      thermo.setup(in_rho, integrate, atom, in_units);
-
-      create_velocity_1(atom, vtot[0], vtot[1], vtot[2], comm_instance);
-    }
-
-    CkCallback cb(CkCallback(CkReductionTarget(Main, reduceVelocity), main_proxy));
-    contribute(3*sizeof(double), vtot, CkReduction::set, cb);
-  }
-
-  void contCreateVelocity(double vxtot, double vytot, double vztot) {
-    if (in_datafile.empty()) {
-      create_velocity_2(in_t_request, atom, thermo, vxtot, vytot, vztot,
-          comm_instance);
-    }
-
-    printConfig();
-
-    contribute(CkCallback(CkReductionTarget(Main, blocksCreated), main_proxy));
-  }
-
-  void printConfig() {
-    if (thisIndex == 0) {
-      CkPrintf("# Done .... \n");
-      CkPrintf("# Charm++ + Kokkos MiniMD output ...\n");
-      CkPrintf("# Run Settings: \n");
-      CkPrintf("\t# Chares: %i\n", num_chares);
-      CkPrintf("\t# Host Threads: %i\n", Kokkos::HostSpace::execution_space::concurrency());
-      CkPrintf("\t# Inputfile: %s\n", input_file.c_str());
-      CkPrintf("\t# Datafile: %s\n", in_datafile.empty() ? "None" : in_datafile.c_str());
-      CkPrintf("# Physics Settings: \n");
-      CkPrintf("\t# ForceStyle: %s\n", in_forcetype == FORCELJ ? "LJ" : "EAM");
-      CkPrintf("\t# Force Parameters: %2.2lf %2.2lf\n",in_epsilon,in_sigma);
-      CkPrintf("\t# Units: %s\n", in_units == 0 ? "LJ" : "METAL");
-      CkPrintf("\t# Atoms: %i\n", atom.natoms);
-      CkPrintf("\t# Atom types: %i\n", atom.ntypes);
-      CkPrintf("\t# System size: %2.2lf %2.2lf %2.2lf (unit cells: %i %i %i)\n", atom.box.xprd, atom.box.yprd, atom.box.zprd, in_nx, in_ny, in_nz);
-      CkPrintf("\t# Density: %lf\n", in_rho);
-      CkPrintf("\t# Force cutoff: %lf\n", force->cutforce);
-      CkPrintf("\t# Timestep size: %lf\n", integrate.dt);
-      CkPrintf("# Technical Settings: \n");
-      CkPrintf("\t# Neigh cutoff: %lf\n", neighbor.cutneigh);
-      CkPrintf("\t# Half neighborlists: %i\n", neighbor.halfneigh);
-      CkPrintf("\t# Team neighborlist construction: %i\n", neighbor.team_neigh_build);
-      CkPrintf("\t# Neighbor bins: %i %i %i\n", neighbor.nbinx, neighbor.nbiny, neighbor.nbinz);
-      CkPrintf("\t# Neighbor frequency: %i\n", neighbor.every);
-      CkPrintf("\t# Sorting frequency: %i\n", integrate.sort_every);
-      CkPrintf("\t# Thermo frequency: %i\n", thermo.nstat);
-      CkPrintf("\t# Ghost Newton: %i\n", ghost_newton);
-      CkPrintf("\t# Use intrinsics: %i\n", force->use_sse);
-      CkPrintf("\t# Do safe exchange: %i\n", comm.do_safeexchange);
-      CkPrintf("\t# Size of float: %i\n\n", (int) sizeof(MMD_float));
-    }
-  }
-
-  ~Block() {}
 };
 
 #include "miniMD.def.h"

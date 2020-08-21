@@ -18,42 +18,18 @@ TARGET = miniMD
 
 all: $(TARGET)
 
-$(TARGET): ljs.o input.o atom.o neighbor.o comm.o force_eam.o force_lj.o integrate.o thermo.o setup.o
+$(TARGET): ljs.o input.o atom.o neighbor.o comm.o force_eam.o force_lj.o integrate.o thermo.o setup.o block.o
 	$(CHARM_LD) -language charm++ -L$(KOKKOS_LIB) -lkokkoscore -L$(CUDA_LIB) -o $@ $^
-
-ljs.o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h ljs_kokkos.h
-	$(CHARMC) -I$(KOKKOS_INC) -c $<
 
 $(TARGET).decl.h: ljs.ci
 	$(CHARMC) $<
 
 $(TARGET).def.h: ljs.ci
 
-input.o: input.cpp
-	$(CHARMC) -c $<
+test: test.ci
+	$(CHARMC) $<
 
-atom.o: atom.cpp atom.h
-	$(CHARMC) -c -I$(KOKKOS_INC) $<
-
-neighbor.o: neighbor.cpp neighbor.h
-	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
-
-comm.o: comm.cpp comm.h
-	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
-
-force_eam.o: force_eam.cpp force_eam.h
-	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
-
-force_lj.o: force_lj.cpp force_lj.h
-	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
-
-integrate.o: integrate.cpp integrate.h
-	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
-
-thermo.o: thermo.cpp thermo.h
-	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
-
-setup.o: setup.cpp
+%.o: %.cpp $(TARGET).decl.h $(TARGET).def.h
 	$(CHARMC) -c -I$(KOKKOS_INC) -I$(CHARM_INC) $<
 
 clean:

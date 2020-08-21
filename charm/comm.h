@@ -32,9 +32,10 @@
 #ifndef COMM_H
 #define COMM_H
 
+#include "block.decl.h"
 #include "atom.h"
 
-class Comm
+class Comm : public CBase_Comm
 {
   public:
 
@@ -65,8 +66,9 @@ class Comm
     KOKKOS_INLINE_FUNCTION
     void operator() (TagBorderUnpack, const int&  ) const;
 
-    Comm(int);
+    Comm();
     ~Comm();
+    void init();
     int setup(MMD_float, Atom &);
     void communicate(Atom &);
     void reverse_communicate(Atom &);
@@ -77,6 +79,8 @@ class Comm
     void growlist(int, int);
 
   public:
+    void* block;
+
     int index;                                      // my chare index
     int nswap;                                   // # of swaps to perform
     int_1d_host_view_type pbc_any;                    // whether any PBC on this swap

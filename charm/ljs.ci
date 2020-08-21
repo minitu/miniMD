@@ -1,9 +1,11 @@
 mainmodule miniMD {
+  extern module block;
   include "types.h";
 
   readonly CProxy_Main main_proxy;
   readonly CProxy_KokkosManager kokkos_proxy;
   readonly CProxy_Block block_proxy;
+  readonly CProxy_Comm comm_proxy;
   readonly int num_chares;
 
   readonly std::string input_file;
@@ -46,8 +48,11 @@ mainmodule miniMD {
     entry Main(CkArgMsg* m);
     entry [reductiontarget] void kokkosInitialized();
     entry [reductiontarget] void reduceVelocity(CkReductionMsg* msg);
-    entry [reductiontarget] void blocksCreated();
-    entry [reductiontarget] void blocksDone();
+    entry [reductiontarget] void blockCreated();
+    entry [reductiontarget] void commCreated();
+    entry [reductiontarget] void blockInitialized();
+    entry [reductiontarget] void commInitialized();
+    entry [reductiontarget] void blockDone();
     entry [reductiontarget] void kokkosFinalized();
 
     entry void run() {
@@ -56,9 +61,19 @@ mainmodule miniMD {
 
         // Create blocks
         block_proxy = CProxy_Block::ckNew(num_chares);
+        CkArrayOptions opts(num_chares);
+        opts.bindTo(block_proxy);
+        comm_proxy = CProxy_Comm::ckNew(opts);
+      }
+
+      when blockCreated() when commCreated() serial {
+        CkPrintf("Blocks created\n");
+        comm_proxy.init();
+        block_proxy.init();
       }
 
       when reduceVelocity(CkReductionMsg* msg) serial {
+        CkPrintf("Reducing velocities\n");
         double vxtot = 0;
         double vytot = 0;
         double vztot = 0;
@@ -75,13 +90,13 @@ mainmodule miniMD {
         block_proxy.contCreateVelocity(vxtot, vytot, vztot);
       }
 
-      when blocksCreated() serial {
-        CkPrintf("blocksCreated\n");
+      when blockInitialized() when commInitialized() serial {
+        CkPrintf("Blocks initialized\n");
         block_proxy.run();
       }
 
-      when blocksDone() serial {
-        CkPrintf("blocksDone\n");
+      when blockDone() serial {
+        CkPrintf("blockDone\n");
         kokkos_proxy.finalize();
       }
 
@@ -96,9 +111,12 @@ mainmodule miniMD {
     entry KokkosManager();
     entry void finalize();
   };
+};
 
+module block {
   array [1d] Block {
     entry Block();
+    entry void init();
     entry void contCreateVelocity(double vxtot, double vytot, double vztot);
     entry void run() {
       serial { CkPrintf("Block %d running...\n", thisIndex); }
@@ -114,8 +132,14 @@ mainmodule miniMD {
       }
 
       serial {
-        contribute(CkCallback(CkReductionTarget(Main, blocksDone), main_proxy));
+        contribute(CkCallback(CkReductionTarget(Main, blockDone), main_proxy));
       }
     }
+  };
+
+  // Bound array to Block
+  array [1d] Comm {
+    entry Comm();
+    entry void init();
   };
 };

@@ -40,11 +40,17 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
+#include "miniMD.decl.h"
+#include "block.decl.h"
+
+/* readonly */ extern CProxy_Main main_proxy;
+/* readonly */ extern CProxy_Block block_proxy;
+/* readonly */ extern CProxy_Comm comm_proxy;
 /* readonly */ extern int num_chares;
 
-Comm::Comm(int index_)
+Comm::Comm()
 {
-  index = index_;
+  index = thisIndex;
   maxsend = BUFMIN;
   buf_send = float_1d_view_type("Comm::buf_send",maxsend + BUFMIN);
   maxrecv = BUFMIN;
@@ -53,9 +59,17 @@ Comm::Comm(int index_)
   do_safeexchange = 0;
   maxnlocal = 0;
   count = Kokkos::DualView<int*>("comm::count",1);
+
+  contribute(CkCallback(CkReductionTarget(Main, commCreated), main_proxy));
 }
 
 Comm::~Comm() {}
+
+void Comm::init() {
+  //block = (void*)block_proxy(thisIndex).ckLocal();
+
+  contribute(CkCallback(CkReductionTarget(Main, commInitialized), main_proxy));
+}
 
 /* setup spatial-decomposition communication patterns */
 
