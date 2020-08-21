@@ -6,6 +6,7 @@ mainmodule miniMD {
   readonly CProxy_Block block_proxy;
   readonly int num_chares;
 
+  readonly std::string input_file;
   readonly int num_threads;
   readonly int teams;
   readonly int num_steps;

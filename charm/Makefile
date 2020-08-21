@@ -18,14 +18,11 @@ TARGET = miniMD
 
 all: $(TARGET)
 
-$(TARGET): ljs.o ljs_kokkos.o input.o atom.o neighbor.o comm.o force_eam.o force_lj.o integrate.o thermo.o setup.o
+$(TARGET): ljs.o input.o atom.o neighbor.o comm.o force_eam.o force_lj.o integrate.o thermo.o setup.o
 	$(CHARM_LD) -language charm++ -L$(KOKKOS_LIB) -lkokkoscore -L$(CUDA_LIB) -o $@ $^
 
 ljs.o: ljs.cpp $(TARGET).decl.h $(TARGET).def.h ljs_kokkos.h
 	$(CHARMC) -I$(KOKKOS_INC) -c $<
-
-ljs_kokkos.o: ljs_kokkos.cpp ljs_kokkos.h
-	$(CHARMC) -c -I$(KOKKOS_INC) $<
 
 $(TARGET).decl.h: ljs.ci
 	$(CHARMC) $<
