@@ -2,7 +2,7 @@
 #include "pup_stl.h"
 #include "hapi.h"
 
-#include "types.h"
+#include "ljs_kokkos.h"
 #include "ljs_kokkos_api.h"
 
 #include <stdio.h>
@@ -252,14 +252,18 @@ class KokkosManager : public CBase_KokkosManager {
 public:
   KokkosManager() {
     // Initialize Kokkos
-    kokkosInitialize(num_threads, teams, 0);
+    Kokkos::InitArguments args_kokkos;
+    args_kokkos.num_threads = num_threads;
+    args_kokkos.num_numa = teams;
+    args_kokkos.device_id = 0;
+    Kokkos::initialize(args_kokkos);
 
     contribute(CkCallback(CkReductionTarget(Main, kokkosInitialized), main_proxy));
   }
 
   void finalize() {
     // Finalize Kokkos
-    kokkosFinalize();
+    Kokkos::finalize();
 
     contribute(CkCallback(CkReductionTarget(Main, kokkosFinalized), main_proxy));
   }

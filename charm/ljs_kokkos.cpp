@@ -53,18 +53,6 @@ extern void create_velocity_1(Atom &atom, double& vxtot, double& vytot,
 extern void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
     double vxtot, double vytot, double vztot, Kokkos::Cuda comm_instance);
 
-void kokkosInitialize(int num_threads, int teams, int device) {
-  Kokkos::InitArguments args_kokkos;
-  args_kokkos.num_threads = num_threads;
-  args_kokkos.num_numa = teams;
-  args_kokkos.device_id = device;
-  Kokkos::initialize(args_kokkos);
-}
-
-void kokkosFinalize() {
-  Kokkos::finalize();
-}
-
 // Can't expose this to Charm++ code because of Kokkos code that needs to be
 // compiled by nvcc_wrapper and not charmc
 struct BlockKokkos {
