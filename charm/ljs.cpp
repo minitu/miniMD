@@ -243,6 +243,13 @@ public:
     // Create KokkosManagers on each process
     kokkos_proxy = CProxy_KokkosManager::ckNew();
 
+    // Create block and comm chare arrays
+    // Their constructors shouldn't call Kokkos functions
+    block_proxy = CProxy_Block::ckNew(num_chares);
+    CkArrayOptions opts(num_chares);
+    opts.bindTo(block_proxy);
+    comm_proxy = CProxy_Comm::ckNew(opts);
+
     thisProxy.run();
   }
 };

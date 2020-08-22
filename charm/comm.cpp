@@ -60,16 +60,11 @@ Comm::Comm()
   maxnlocal = 0;
   count = Kokkos::DualView<int*>("comm::count",1);
 
-  contribute(CkCallback(CkReductionTarget(Main, commCreated), main_proxy));
+  // Save pointer to Block bound array element
+  block = (void*)block_proxy(thisIndex).ckLocal();
 }
 
 Comm::~Comm() {}
-
-void Comm::init() {
-  //block = (void*)block_proxy(thisIndex).ckLocal();
-
-  contribute(CkCallback(CkReductionTarget(Main, commInitialized), main_proxy));
-}
 
 /* setup spatial-decomposition communication patterns */
 

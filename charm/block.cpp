@@ -54,13 +54,11 @@ extern void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
     double vxtot, double vytot, double vztot, Kokkos::Cuda comm_instance);
 
 Block::Block() : atom(ntypes), neighbor(ntypes), integrate(), thermo(),
-  comm(nullptr), force(nullptr) {
-  contribute(CkCallback(CkReductionTarget(Main, blockCreated), main_proxy));
-}
+  comm(nullptr), force(nullptr) {}
 
 void Block::init() {
-  // Save pointer to comm bound array element
-  //comm = comm_proxy(thisIndex).ckLocal();
+  // Save pointer to Comm bound array element
+  comm = comm_proxy(thisIndex).ckLocal();
 
   // Create CUDA streams (higher priority for communication stream)
   cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
@@ -91,7 +89,6 @@ void Block::init() {
   force->compute_instance = compute_instance;
   force->comm_instance = comm_instance;
 
-  /*
   if (in_forcetype == FORCELJ) {
     float_1d_view_type d_epsilon("ForceLJ::epsilon", ntypes*ntypes);
     float_1d_host_view_type h_epsilon = Kokkos::create_mirror_view(d_epsilon);
@@ -123,10 +120,8 @@ void Block::init() {
   }
 
   neighbor.ghost_newton = ghost_newton;
-  CkPrintf("%d before accessing comm\n", thisIndex);
   comm->check_safeexchange = check_safeexchange;
   comm->do_safeexchange = do_safeexchange;
-  CkPrintf("%d after accessing comm\n", thisIndex);
   force->use_sse = use_sse;
   neighbor.halfneigh = halfneigh;
   neighbor.team_neigh_build = team_neigh;
@@ -201,24 +196,18 @@ void Block::init() {
 
      create_velocity_1(atom, vtot[0], vtot[1], vtot[2], comm_instance);
    }
-   */
 
-   vtot[0] = 0;
-   vtot[1] = 0;
-   vtot[2] = 0;
    CkCallback cb(CkCallback(CkReductionTarget(Main, reduceVelocity), main_proxy));
    contribute(3*sizeof(double), vtot, CkReduction::set, cb);
 }
 
 void Block::contCreateVelocity(double vxtot, double vytot, double vztot) {
-  /*
   if (in_datafile.empty()) {
     create_velocity_2(in_t_request, atom, thermo, vxtot, vytot, vztot,
         comm_instance);
   }
-  */
 
-  //printConfig();
+  printConfig();
 
   contribute(CkCallback(CkReductionTarget(Main, blockInitialized), main_proxy));
 }
