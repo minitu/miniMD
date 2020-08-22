@@ -37,8 +37,6 @@
 
 class Comm : public CBase_Comm
 {
-Comm_SDAG_CODE
-
   public:
 
     struct TagExchangeSendlist {};

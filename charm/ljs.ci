@@ -104,6 +104,7 @@ module block {
     entry Block();
     entry void init();
     entry void contCreateVelocity(double vxtot, double vytot, double vztot);
+
     entry [threaded] void run() {
       serial { CkPrintf("Block %d running...\n", thisIndex); }
 
@@ -122,11 +123,44 @@ module block {
         contribute(CkCallback(CkReductionTarget(Main, blockDone), main_proxy));
       }
     }
+
+    entry void send(int iter, int idim, CkCallback cb) {
+      serial {
+        CkPrintf("%d idim %d send actual to %d\n", thisIndex, idim, comm->chareneigh[idim][0]);
+        thisProxy[comm->chareneigh[idim][0]].recv(iter, (char*)(&(comm->nsend)), sizeof(int));
+        if (comm->charegrid[idim] > 2) {
+          CkPrintf("%d idim %d send actual to %d\n", thisIndex, idim, comm->chareneigh[idim][1]);
+          thisProxy[comm->chareneigh[idim][1]].recv(iter, (char*)(&(comm->nsend)), sizeof(int));
+        }
+      }
+
+      overlap {
+        when recv[iter](int ref, char data[size], size_t size) serial {
+          CkPrintf("%d idim %d recv 1\n", thisIndex, idim);
+          memcpy(&(comm->nrecv1), data, size);
+          comm->nrecv = comm->nrecv1;
+        }
+        if (comm->charegrid[idim] > 2) {
+          when recv[iter](int ref, char data[size], size_t size) serial {
+            CkPrintf("%d idim %d recv 2\n", thisIndex, idim);
+            memcpy(&(comm->nrecv2), data, size);
+            comm->nrecv += comm->nrecv2;
+          }
+        }
+      }
+
+      serial {
+        cb.send();
+      }
+    }
+
+    entry void recv(int ref, char data[size], size_t size);
   };
 
   // Bound array to Block
   array [1d] Comm {
     entry Comm();
+    /*
     entry void send(int iter, int idim, CkCallback cb) {
       serial {
         thisProxy[chareneigh[idim][0]].recv(iter, nsend, sizeof(int));
@@ -153,5 +187,6 @@ module block {
       }
     }
     entry void recv(int ref, char data[size], size_t size);
+    */
   };
 };

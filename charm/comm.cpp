@@ -466,7 +466,9 @@ void Comm::exchange(Atom &atom_)
     nsend = count.h_view(0) * 7;
 
     int iter = ((Block*)block)->iter;
-    thisProxy[thisIndex].send(iter, idim, CkCallbackResumeThread());
+    CkPrintf("%d idim %d before send proxy\n", thisIndex, idim);
+    block_proxy[thisIndex].send(iter, idim, CkCallbackResumeThread());
+    CkPrintf("%d idim %d after send proxy\n", thisIndex, idim);
 
     nrecv = nrecv1;
     if (charegrid[idim] > 2) {
