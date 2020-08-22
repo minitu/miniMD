@@ -380,6 +380,7 @@ void Comm::exchange(Atom &atom_)
   NVTXTracer("Comm::exchange", NVTXColor::WetAsphalt);
   Kokkos::Profiling::pushRegion("exchange");
   atom = atom_;
+  int nsend, nrecv, nrecv1, nrecv2, nlocal;
 
   /* enforce PBC */
 
@@ -464,8 +465,13 @@ void Comm::exchange(Atom &atom_)
 
     nsend = count.h_view(0) * 7;
 
-    int iter = ((Block*)block)->iter;
-    block_proxy[thisIndex].send(iter, idim, CkCallbackResumeThread());
+    send1 = static_cast<void*>(&nsend);
+    send1_size = sizeof(int);
+    send2 = static_cast<void*>(&nsend);
+    send2_size = sizeof(int);
+    recv1 = static_cast<void*>(&nrecv1);
+    recv2 = static_cast<void*>(&nrecv2);
+    block_proxy[thisIndex].exchange_nb(idim, CkCallbackResumeThread());
 
     nrecv = nrecv1;
     if (charegrid[idim] > 2) {

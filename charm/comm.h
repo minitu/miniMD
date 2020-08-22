@@ -126,7 +126,9 @@ class Comm : public CBase_Comm
     int maxnlocal;
     int nrecv_atoms;
 
-    int nsend, nrecv, nrecv1, nrecv2, nlocal;
+    // Used in exchange()
+    void *send1, *send2, *recv1, *recv2;
+    size_t send1_size, send2_size;
 
   private:
     Atom atom;
