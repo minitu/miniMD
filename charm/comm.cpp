@@ -39,6 +39,7 @@
 #define BUFEXTRA 100
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define IDX(x,y,z) ((charegrid[0] * charegrid[1] * (z)) + charegrid[0] * (y) + (x))
 
 #include "miniMD.decl.h"
 #include "block.decl.h"
@@ -140,26 +141,24 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   myloc[1] = (index / charegrid[0]) % charegrid[1];
   myloc[2] = index / (charegrid[0] * charegrid[1]);
 
-  if (myloc[0] == 0)              chareneigh[0][0] = charegrid[0]-1;
-  else                            chareneigh[0][0] = myloc[0]-1;
-  if (myloc[0] == charegrid[0]-1) chareneigh[0][1] = 0;
-  else                            chareneigh[0][1] = myloc[0]+1;
-  if (myloc[1] == 0)              chareneigh[1][0] = charegrid[1]-1;
-  else                            chareneigh[1][0] = myloc[1]-1;
-  if (myloc[1] == charegrid[1]-1) chareneigh[1][1] = 0;
-  else                            chareneigh[1][1] = myloc[1]+1;
-  if (myloc[2] == 0)              chareneigh[2][0] = charegrid[2]-1;
-  else                            chareneigh[2][0] = myloc[2]-1;
-  if (myloc[2] == charegrid[2]-1) chareneigh[2][1] = 0;
-  else                            chareneigh[2][1] = myloc[2]+1;
+  if (myloc[0] == 0)              chareneigh[0][0] = IDX(charegrid[0]-1,myloc[1],myloc[2]);
+  else                            chareneigh[0][0] = IDX(myloc[0]-1,myloc[1],myloc[2]);
+  if (myloc[0] == charegrid[0]-1) chareneigh[0][1] = IDX(0,myloc[1],myloc[2]);
+  else                            chareneigh[0][1] = IDX(myloc[0]+1,myloc[1],myloc[2]);
+  if (myloc[1] == 0)              chareneigh[1][0] = IDX(myloc[0],charegrid[1]-1,myloc[2]);
+  else                            chareneigh[1][0] = IDX(myloc[0],myloc[1]-1,myloc[2]);
+  if (myloc[1] == charegrid[1]-1) chareneigh[1][1] = IDX(myloc[0],0,myloc[2]);
+  else                            chareneigh[1][1] = IDX(myloc[0],myloc[1]+1,myloc[2]);
+  if (myloc[2] == 0)              chareneigh[2][0] = IDX(myloc[0],myloc[1],charegrid[2]-1);
+  else                            chareneigh[2][0] = IDX(myloc[0],myloc[1],myloc[2]-1);
+  if (myloc[2] == charegrid[2]-1) chareneigh[2][1] = IDX(myloc[0],myloc[1],0);
+  else                            chareneigh[2][1] = IDX(myloc[0],myloc[1],myloc[2]+1);
 
   /*
-  MPI_Cart_create(MPI_COMM_WORLD, 3, charegrid, periods, reorder, &cartesian);
-  MPI_Cart_get(cartesian, 3, charegrid, periods, myloc);
-  MPI_Cart_shift(cartesian, 0, 1, &chareneigh[0][0], &chareneigh[0][1]);
-  MPI_Cart_shift(cartesian, 1, 1, &chareneigh[1][0], &chareneigh[1][1]);
-  MPI_Cart_shift(cartesian, 2, 1, &chareneigh[2][0], &chareneigh[2][1]);
-  */
+  CkPrintf("Chare %d (%d, %d, %d), neighbors: %d, %d, %d, %d, %d, %d\n",
+      index, myloc[0], myloc[1], myloc[2], chareneigh[0][0], chareneigh[0][1],
+      chareneigh[1][0], chareneigh[1][1], chareneigh[2][0], chareneigh[2][1]);
+      */
 
   /* lo/hi = my local box bounds */
 
@@ -466,9 +465,7 @@ void Comm::exchange(Atom &atom_)
     nsend = count.h_view(0) * 7;
 
     int iter = ((Block*)block)->iter;
-    CkPrintf("%d idim %d before send proxy\n", thisIndex, idim);
     block_proxy[thisIndex].send(iter, idim, CkCallbackResumeThread());
-    CkPrintf("%d idim %d after send proxy\n", thisIndex, idim);
 
     nrecv = nrecv1;
     if (charegrid[idim] > 2) {

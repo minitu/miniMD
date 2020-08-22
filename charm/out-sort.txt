@@ -1,0 +1,87 @@
+
+	# Atom types: 8
+	# Atoms: 8388608
+	# Chares: 16
+	# Datafile: None
+	# Density: 0.844200
+	# Do safe exchange: 0
+	# Force Parameters: 1.00 1.00
+	# Force cutoff: 2.500000
+	# ForceStyle: LJ
+	# Ghost Newton: 1
+	# Half neighborlists: 1
+	# Host Threads: 1
+	# Inputfile: ../inputs/in.lj.miniMD
+	# Neigh cutoff: 2.800000
+	# Neighbor bins: 76 76 76
+	# Neighbor frequency: 1000
+	# Size of float: 8
+	# Sorting frequency: 1000
+	# System size: 214.99 214.99 214.99 (unit cells: 128 128 128)
+	# Team neighborlist construction: 0
+	# Thermo frequency: 100
+	# Timestep size: 0.005000
+	# Units: LJ
+	# Use intrinsics: 0
+# Charm++ + Kokkos MiniMD output ...
+# Create System:
+# Done .... 
+# Physics Settings: 
+# Run Settings: 
+# Technical Settings: 
+Block 0 running...
+Block 1 running...
+Block 10 running...
+Block 11 running...
+Block 12 running...
+Block 13 running...
+Block 14 running...
+Block 15 running...
+Block 2 running...
+Block 3 running...
+Block 4 running...
+Block 5 running...
+Block 6 running...
+Block 7 running...
+Block 8 running...
+Block 9 running...
+Chare 0 (0, 0, 0), neighbors: 1, 1, 2, 2, 12, 4
+Chare 1 (1, 0, 0), neighbors: 0, 0, 3, 3, 13, 5
+Chare 10 (0, 1, 2), neighbors: 11, 11, 8, 8, 6, 14
+Chare 11 (1, 1, 2), neighbors: 10, 10, 9, 9, 7, 15
+Chare 12 (0, 0, 3), neighbors: 13, 13, 14, 14, 8, 0
+Chare 13 (1, 0, 3), neighbors: 12, 12, 15, 15, 9, 1
+Chare 14 (0, 1, 3), neighbors: 15, 15, 12, 12, 10, 2
+Chare 15 (1, 1, 3), neighbors: 14, 14, 13, 13, 11, 3
+Chare 2 (0, 1, 0), neighbors: 3, 3, 0, 0, 14, 6
+Chare 3 (1, 1, 0), neighbors: 2, 2, 1, 1, 15, 7
+Chare 4 (0, 0, 1), neighbors: 5, 5, 6, 6, 0, 8
+Chare 5 (1, 0, 1), neighbors: 4, 4, 7, 7, 1, 9
+Chare 6 (0, 1, 1), neighbors: 7, 7, 4, 4, 2, 10
+Chare 7 (1, 1, 1), neighbors: 6, 6, 5, 5, 3, 11
+Chare 8 (0, 0, 2), neighbors: 9, 9, 10, 10, 4, 12
+Chare 9 (1, 0, 2), neighbors: 8, 8, 11, 11, 5, 13
+Chare grid: 2 x 2 x 4
+Charm++ built with internal error checking enabled.
+Charm++ built without optimization.
+Charm++> Running in SMP mode: 4 processes, 1 worker threads (PEs) + 0 comm threads per process, 4 PEs total
+Charm++> Running on 1 hosts (2 sockets x 0 cores x 4 PUs = 4-way SMP)
+Charm++> There's no comm. thread. Work threads both send and receive messages
+Charm++> cpu affinity enabled. 
+Charm++> cpu topology info is gathered in 0.003 seconds.
+Charm++> cpuaffinity PE-core map (logical indices): 0,4,84,88
+CharmLB> Load balancer assumes all CPUs are same.
+Choosing optimized barrier algorithm name I0:HybridBinomial:SHMEM:P2P
+Converse/Charm++ Commit ID: v6.11.0-devel-420-gefc74ec
+Do not use for performance benchmarking (build with --with-production to do so).
+Do not use for performance benchmarking (build without --enable-error-checking to do so).
+HAPI> Config: 1 device(s) per process, 1 PE(s) per device, 4 device(s) per host
+HAPI> Enabling P2P access between devices
+HWLOC> [0] Thread 0x20000004a8e0 bound to cpuset: 0x00000001
+Isomalloc> Synchronized global address space.
+[Main] Blocks complete
+[Main] Blocks initialized
+[Main] Kokkos finalized
+[Main] Kokkos initialized
+[Main] Reducing velocities...
+[Partition 0][Node 0] End of program

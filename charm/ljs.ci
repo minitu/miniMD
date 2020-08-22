@@ -126,23 +126,19 @@ module block {
 
     entry void send(int iter, int idim, CkCallback cb) {
       serial {
-        CkPrintf("%d idim %d send actual to %d\n", thisIndex, idim, comm->chareneigh[idim][0]);
         thisProxy[comm->chareneigh[idim][0]].recv(iter, (char*)(&(comm->nsend)), sizeof(int));
         if (comm->charegrid[idim] > 2) {
-          CkPrintf("%d idim %d send actual to %d\n", thisIndex, idim, comm->chareneigh[idim][1]);
           thisProxy[comm->chareneigh[idim][1]].recv(iter, (char*)(&(comm->nsend)), sizeof(int));
         }
       }
 
       overlap {
         when recv[iter](int ref, char data[size], size_t size) serial {
-          CkPrintf("%d idim %d recv 1\n", thisIndex, idim);
           memcpy(&(comm->nrecv1), data, size);
           comm->nrecv = comm->nrecv1;
         }
         if (comm->charegrid[idim] > 2) {
           when recv[iter](int ref, char data[size], size_t size) serial {
-            CkPrintf("%d idim %d recv 2\n", thisIndex, idim);
             memcpy(&(comm->nrecv2), data, size);
             comm->nrecv += comm->nrecv2;
           }
