@@ -37,6 +37,8 @@
 
 class Comm : public CBase_Comm
 {
+Comm_SDAG_CODE
+
   public:
 
     struct TagExchangeSendlist {};
@@ -74,6 +76,7 @@ class Comm : public CBase_Comm
     void reverse_communicate(Atom &);
     void exchange(Atom &);
     void borders(Atom &);
+    //void send(int, int, CkCallback cb);
     void growsend(int);
     void growrecv(int);
     void growlist(int, int);
@@ -124,6 +127,8 @@ class Comm : public CBase_Comm
     int_1d_view_type send_flag;
     int maxnlocal;
     int nrecv_atoms;
+
+    int nsend, nrecv, nrecv1, nrecv2, nlocal;
 
   private:
     Atom atom;

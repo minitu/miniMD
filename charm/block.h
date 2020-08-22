@@ -16,6 +16,7 @@
 class Block : public CBase_Block {
   Block_SDAG_CODE
 
+public:
   Atom atom;
   Neighbor neighbor;
   Integrate integrate;

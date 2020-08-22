@@ -104,10 +104,11 @@ module block {
     entry Block();
     entry void init();
     entry void contCreateVelocity(double vxtot, double vytot, double vztot);
-    entry void run() {
+    entry [threaded] void run() {
       serial { CkPrintf("Block %d running...\n", thisIndex); }
 
       serial "preprocess" {
+        comm->exchange(atom);
       }
 
       // Loop over integrate iterations
@@ -126,5 +127,31 @@ module block {
   // Bound array to Block
   array [1d] Comm {
     entry Comm();
+    entry void send(int iter, int idim, CkCallback cb) {
+      serial {
+        thisProxy[chareneigh[idim][0]].recv(iter, nsend, sizeof(int));
+        if (charegrid[idim] > 2) {
+          thisProxy[chareneigh[idim][1]].recv(iter, nsend, sizeof(int));
+        }
+      }
+
+      overlap {
+        when recv[iter](int ref, char data[size], size_t size) serial {
+          memcpy(nrecv1, data, size);
+          nrecv = nrecv1;
+        }
+        if (charegrid[idim] > 2) {
+          when recv[iter](int ref, char data[size], size_t size) serial {
+            memcpy(nrecv2, data, size);
+            nrecv += nrecv2;
+          }
+        }
+      }
+
+      serial {
+        cb.send();
+      }
+    }
+    entry void recv(int ref, char data[size], size_t size);
   };
 };

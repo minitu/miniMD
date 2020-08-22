@@ -42,6 +42,7 @@
 
 #include "miniMD.decl.h"
 #include "block.decl.h"
+#include "block.h"
 
 /* readonly */ extern CProxy_Main main_proxy;
 /* readonly */ extern CProxy_Block block_proxy;
@@ -380,7 +381,6 @@ void Comm::exchange(Atom &atom_)
   NVTXTracer("Comm::exchange", NVTXColor::WetAsphalt);
   Kokkos::Profiling::pushRegion("exchange");
   atom = atom_;
-  int nsend, nrecv, nrecv1, nrecv2, nlocal;
 
   /* enforce PBC */
 
@@ -465,6 +465,14 @@ void Comm::exchange(Atom &atom_)
 
     nsend = count.h_view(0) * 7;
 
+    int iter = ((Block*)block)->iter;
+    thisProxy[thisIndex].send(iter, idim, CkCallbackResumeThread());
+
+    nrecv = nrecv1;
+    if (charegrid[idim] > 2) {
+      nrecv += nrecv2;
+    }
+
     /*
       MPI_Sendrecv(&nsend, 1, MPI_INT, chareneigh[idim][0], 0,
                    &nrecv1, 1, MPI_INT, chareneigh[idim][1], 0,
@@ -477,10 +485,12 @@ void Comm::exchange(Atom &atom_)
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         nrecv += nrecv2;
       }
+      */
 
       if(nrecv > maxrecv) growrecv(nrecv);
       Kokkos::fence();
 
+      /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
       MPI_Sendrecv(buf_send.data(), nsend, type, chareneigh[idim][0], 0,
                    buf_recv.data(), nrecv1, type, chareneigh[idim][1], 0,
