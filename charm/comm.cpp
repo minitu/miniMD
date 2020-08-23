@@ -56,7 +56,7 @@ Comm::Comm()
   maxsend = BUFMIN;
   buf_send = float_1d_view_type("Comm::buf_send",maxsend + BUFMIN);
   maxrecv = BUFMIN;
-  buf_recv = float_1d_view_type("Comm::buf_send",maxrecv);
+  buf_recv = float_1d_view_type("Comm::buf_recv",maxrecv);
   check_safeexchange = 0;
   do_safeexchange = 0;
   maxnlocal = 0;
@@ -479,36 +479,53 @@ void Comm::exchange(Atom &atom_)
     }
 
     /*
-      MPI_Sendrecv(&nsend, 1, MPI_INT, chareneigh[idim][0], 0,
-                   &nrecv1, 1, MPI_INT, chareneigh[idim][1], 0,
+    MPI_Sendrecv(&nsend, 1, MPI_INT, chareneigh[idim][0], 0,
+                 &nrecv1, 1, MPI_INT, chareneigh[idim][1], 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    nrecv = nrecv1;
+
+    if(charegrid[idim] > 2) {
+      MPI_Sendrecv(&nsend, 1, MPI_INT, chareneigh[idim][1], 0,
+                   &nrecv2, 1, MPI_INT, chareneigh[idim][0], 0,
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      nrecv = nrecv1;
+      nrecv += nrecv2;
+    }
+    */
 
-      if(charegrid[idim] > 2) {
-        MPI_Sendrecv(&nsend, 1, MPI_INT, chareneigh[idim][1], 0,
-                     &nrecv2, 1, MPI_INT, chareneigh[idim][0], 0,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        nrecv += nrecv2;
-      }
-      */
+    if (nrecv > maxrecv) growrecv(nrecv);
+    Kokkos::fence();
 
-      if(nrecv > maxrecv) growrecv(nrecv);
-      Kokkos::fence();
+    // Move data on device to host for communication
+    // TODO: Check if create_mirror_view is done only once
+    h_buf_send = Kokkos::create_mirror_view(buf_send);
+    h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+    Kokkos::deep_copy(h_buf_send, buf_send);
 
-      /*
-      MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-      MPI_Sendrecv(buf_send.data(), nsend, type, chareneigh[idim][0], 0,
-                   buf_recv.data(), nrecv1, type, chareneigh[idim][1], 0,
+    send1 = static_cast<void*>(h_buf_send.data());
+    send1_size = nsend * sizeof(MMD_float);
+    send2 = static_cast<void*>(h_buf_send.data());
+    send2_size = nsend * sizeof(MMD_float);
+    recv1 = h_buf_recv.data();
+    recv2 = h_buf_recv.data() + nrecv1;
+    block_proxy[thisIndex].exchange_nb(idim, CkCallbackResumeThread());
+
+    // Move received data to device
+    Kokkos::deep_copy(buf_recv, h_buf_recv);
+
+    /*
+    MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
+    MPI_Sendrecv(buf_send.data(), nsend, type, chareneigh[idim][0], 0,
+                 buf_recv.data(), nrecv1, type, chareneigh[idim][1], 0,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    if(charegrid[idim] > 2) {
+      MPI_Sendrecv(buf_send.data(), nsend, type, chareneigh[idim][1], 0,
+                   buf_recv.data()+nrecv1, nrecv2, type, chareneigh[idim][0], 0,
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+    */
 
-      if(charegrid[idim] > 2) {
-        MPI_Sendrecv(buf_send.data(), nsend, type, chareneigh[idim][1], 0,
-                     buf_recv.data()+nrecv1, nrecv2, type, chareneigh[idim][0], 0,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      }
-      */
-
-      nrecv_atoms = nrecv / 7;
+    nrecv_atoms = nrecv / 7;
 
     /* check incoming atoms to see if they are in my box
        if they are, add to my list */
