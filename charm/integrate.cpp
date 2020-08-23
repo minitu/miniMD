@@ -73,11 +73,11 @@ void Integrate::operator() (TagFinalIntegrate, const int& i) const {
 }
 
 void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
-                    Comm &comm, Thermo &thermo)
+                    Comm* comm, Thermo &thermo)
 {
   int i, n;
 
-  int check_safeexchange = comm.check_safeexchange;
+  int check_safeexchange = comm->check_safeexchange;
 
   mass = atom.mass;
   dtforce = dtforce / mass;
@@ -99,7 +99,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       if((n + 1) % neighbor.every) {
 
-        comm.communicate(atom);
+        comm->communicate(atom);
 
       } else {
           if(check_safeexchange) {
@@ -139,12 +139,12 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
           }
 
-          comm.exchange(atom);
+          comm->exchange(atom);
           if(n+1>=next_sort) {
             atom.sort(neighbor);
             next_sort +=  sort_every;
           }
-          comm.borders(atom);
+          comm->borders(atom);
 
         Kokkos::fence();
 
@@ -156,13 +156,13 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       Kokkos::Profiling::pushRegion("force");
       force->evflag = (n + 1) % thermo.nstat == 0;
-      force->compute(atom, neighbor, &comm, comm.index);
+      force->compute(atom, neighbor, comm, comm->index);
       Kokkos::fence();
       Kokkos::Profiling::popRegion();
 
 
       if(neighbor.halfneigh && neighbor.ghost_newton) {
-        comm.reverse_communicate(atom);
+        comm->reverse_communicate(atom);
 
       }
 

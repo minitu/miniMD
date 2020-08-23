@@ -75,7 +75,7 @@ void Thermo::setup(MMD_float rho_in, Integrate &integrate, Atom &atom, int units
   }
 }
 
-void Thermo::compute(MMD_int iflag, Atom &atom, Neighbor &neighbor, Force* force, Comm &comm)
+void Thermo::compute(MMD_int iflag, Atom &atom, Neighbor &neighbor, Force* force, Comm* comm)
 {
   MMD_float t, eng, p;
 

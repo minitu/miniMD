@@ -121,6 +121,13 @@ module block {
 
         if (neighbor.halfneigh && neighbor.ghost_newton)
           comm->reverse_communicate(atom);
+
+        if (thisIndex == 0) {
+          CkPrintf("# Starting dynamics...\n");
+          CkPrintf("# Timestep T U P Time\n");
+        }
+
+        thermo.compute(0, atom, neighbor, force, comm);
       }
 
       // Loop over integrate iterations

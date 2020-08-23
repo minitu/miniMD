@@ -65,7 +65,7 @@ class Thermo
 
     MMD_float energy(Atom &, Neighbor &, Force*);
     MMD_float pressure(MMD_float, Force*);
-    void compute(MMD_int, Atom &, Neighbor &, Force*, Comm &);
+    void compute(MMD_int, Atom &, Neighbor &, Force*, Comm*);
 
     x_const_view_type v;
     MMD_float mass;
