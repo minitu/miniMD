@@ -43,6 +43,9 @@ class Force
     Kokkos::Cuda compute_instance;
     Kokkos::Cuda comm_instance;
 
+    cudaEvent_t compute_event;
+    cudaEvent_t comm_event;
+
     MMD_float cutforce;
     float_1d_rnd_view_type cutforcesq;
     MMD_float eng_vdwl;

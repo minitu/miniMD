@@ -61,6 +61,9 @@ class Atom
     Kokkos::Cuda compute_instance;
     Kokkos::Cuda comm_instance;
 
+    cudaEvent_t compute_event;
+    cudaEvent_t comm_event;
+
     typedef int value_type;
     int natoms;
     int nlocal, nghost;

@@ -48,6 +48,9 @@ class Integrate
     Kokkos::Cuda compute_instance;
     Kokkos::Cuda comm_instance;
 
+    cudaEvent_t compute_event;
+    cudaEvent_t comm_event;
+
     MMD_float dt;
     MMD_float dtforce;
     MMD_int ntimes;
@@ -56,6 +59,8 @@ class Integrate
     MMD_float mass;
 
     MMD_int sort_every;
+
+    CkCallbackResumeThread* resume_cb;
 
     Integrate();
     ~Integrate();
@@ -67,6 +72,7 @@ class Integrate
     KOKKOS_INLINE_FUNCTION
     void operator() (TagFinalIntegrate, const int& i) const;
     void run(Atom &, Force*, Neighbor &, Comm*, Thermo &, int);
+    void suspend(Kokkos::Cuda);
 };
 
 #endif

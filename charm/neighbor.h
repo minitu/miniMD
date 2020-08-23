@@ -47,6 +47,9 @@ class Neighbor
     Kokkos::Cuda compute_instance;
     Kokkos::Cuda comm_instance;
 
+    cudaEvent_t compute_event;
+    cudaEvent_t comm_event;
+
     int every;                       // re-neighbor every this often
     int nbinx, nbiny, nbinz;         // # of global bins
     MMD_float cutneigh;              // neighbor cutoff

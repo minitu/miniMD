@@ -60,20 +60,16 @@ void Block::init() {
   // Save pointer to Comm bound array element
   comm = comm_proxy(thisIndex).ckLocal();
 
-  // Create CUDA streams (higher priority for communication stream)
-  cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
-  cudaStreamCreateWithPriority(&comm_stream, cudaStreamDefault, -1);
-
-  // Create CUDA events used to preserve dependencies between streams
-  cudaEventCreateWithFlags(&compute_event, cudaEventDisableTiming);
-  cudaEventCreateWithFlags(&comm_event, cudaEventDisableTiming);
-
-  // Create member objects
+  // Create force object
   if (in_forcetype == FORCEEAM) {
     force = (Force*) new ForceEAM(ntypes);
   } else if (in_forcetype == FORCELJ) {
     force = (Force*) new ForceLJ(ntypes);
   }
+
+  // Create CUDA streams (higher priority for communication stream)
+  cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
+  cudaStreamCreateWithPriority(&comm_stream, cudaStreamDefault, -1);
 
   // Create separate execution instances with CUDA streams
   compute_instance = Kokkos::Cuda(compute_stream);
@@ -86,8 +82,26 @@ void Block::init() {
   integrate.comm_instance = comm_instance;
   thermo.compute_instance = compute_instance;
   thermo.comm_instance = comm_instance;
+  comm->compute_instance = compute_instance;
+  comm->comm_instance = comm_instance;
   force->compute_instance = compute_instance;
   force->comm_instance = comm_instance;
+
+  // Create CUDA events used to preserve dependencies between streams
+  cudaEventCreateWithFlags(&compute_event, cudaEventDisableTiming);
+  cudaEventCreateWithFlags(&comm_event, cudaEventDisableTiming);
+  atom.compute_event = compute_event;
+  atom.comm_event = comm_event;
+  neighbor.compute_event = compute_event;
+  neighbor.comm_event = comm_event;
+  integrate.compute_event = compute_event;
+  integrate.comm_event = comm_event;
+  thermo.compute_event = compute_event;
+  thermo.comm_event = comm_event;
+  comm->compute_event = compute_event;
+  comm->comm_event = comm_event;
+  force->compute_event = compute_event;
+  force->comm_event = comm_event;
 
   if (in_forcetype == FORCELJ) {
     float_1d_view_type d_epsilon("ForceLJ::epsilon", ntypes*ntypes);
