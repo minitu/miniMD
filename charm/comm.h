@@ -128,9 +128,10 @@ class Comm : public CBase_Comm
     int maxnlocal;
     int nrecv_atoms;
 
-    // Used in exchange()
+    // Used for Charm++ communication
     void *send1, *send2, *recv1, *recv2;
     size_t send1_size, send2_size;
+    int send1_chare, send2_chare, recv1_chare, recv2_chare;
 
   private:
     Atom atom;

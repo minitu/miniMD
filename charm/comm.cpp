@@ -308,6 +308,21 @@ void Comm::communicate(Atom &atom)
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
+      // Move data on device to host for communication
+      // TODO: Check if create_mirror_view is done only once
+      h_buf_send = Kokkos::create_mirror_view(buf_send);
+      h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+      Kokkos::deep_copy(h_buf_send, buf_send);
+
+      send1 = h_buf_send.data();
+      send1_size = comm_send_size[iswap] * sizeof(MMD_float);
+      send1_chare = sendchare[iswap];
+      recv1 = h_buf_recv.data();
+      block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
+
+      // Move received data to device
+      Kokkos::deep_copy(buf_recv, h_buf_recv);
+
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
       MPI_Sendrecv(buf_send.data(), comm_send_size[iswap], type, sendchare[iswap], 0,
@@ -348,6 +363,20 @@ void Comm::reverse_communicate(Atom &atom)
        if self, set recv buffer to send buffer */
 
     if(sendchare[iswap] != index) {
+      // Move data on device to host for communication
+      // TODO: Check if create_mirror_view is done only once
+      h_buf_send = Kokkos::create_mirror_view(buf_send);
+      h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+      Kokkos::deep_copy(h_buf_send, buf_send);
+
+      send1 = h_buf_send.data();
+      send1_size = reverse_send_size[iswap] * sizeof(MMD_float);
+      send1_chare = recvchare[iswap];
+      recv1 = h_buf_recv.data();
+      block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
+
+      // Move received data to device
+      Kokkos::deep_copy(buf_recv, h_buf_recv);
 
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
@@ -467,8 +496,10 @@ void Comm::exchange(Atom &atom_)
 
     send1 = static_cast<void*>(&nsend);
     send1_size = sizeof(int);
+    send1_chare = chareneigh[idim][0];
     send2 = static_cast<void*>(&nsend);
     send2_size = sizeof(int);
+    send2_chare = chareneigh[idim][1];
     recv1 = static_cast<void*>(&nrecv1);
     recv2 = static_cast<void*>(&nrecv2);
     block_proxy[thisIndex].exchange_nb(idim, CkCallbackResumeThread());
@@ -503,8 +534,10 @@ void Comm::exchange(Atom &atom_)
 
     send1 = static_cast<void*>(h_buf_send.data());
     send1_size = nsend * sizeof(MMD_float);
+    send1_chare = chareneigh[idim][0];
     send2 = static_cast<void*>(h_buf_send.data());
     send2_size = nsend * sizeof(MMD_float);
+    send2_chare = chareneigh[idim][1];
     recv1 = h_buf_recv.data();
     recv2 = h_buf_recv.data() + nrecv1;
     block_proxy[thisIndex].exchange_nb(idim, CkCallbackResumeThread());
@@ -682,8 +715,9 @@ void Comm::borders(Atom &atom_)
         if(sendchare[iswap] != index) {
           send1 = static_cast<void*>(&nsend);
           send1_size = sizeof(int);
+          send1_chare = sendchare[iswap];
           recv1 = static_cast<void*>(&nrecv);
-          block_proxy[thisIndex].borders_nb(iswap, CkCallbackResumeThread());
+          block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
 
           if(nrecv * atom.border_size > maxrecv) growrecv(nrecv * atom.border_size);
 
@@ -695,8 +729,9 @@ void Comm::borders(Atom &atom_)
 
           send1 = static_cast<void*>(h_buf_send.data());
           send1_size = nsend * atom.border_size * sizeof(MMD_float);
+          send1_chare = sendchare[iswap];
           recv1 = h_buf_recv.data();
-          block_proxy[thisIndex].borders_nb(iswap, CkCallbackResumeThread());
+          block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
 
           // Move received data to device
           Kokkos::deep_copy(buf_recv, h_buf_recv);
