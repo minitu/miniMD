@@ -492,7 +492,9 @@ void Comm::exchange(Atom &atom_, bool preprocess)
       count.modify<HostType>();
       count.sync<DeviceType>();
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<TagExchangeSendlist>(0,nlocal),*this);
+      Kokkos::parallel_for(Kokkos::Experimental::require(
+            Kokkos::RangePolicy<TagExchangeSendlist>(comm_instance,0,nlocal),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
       Kokkos::fence();
 
       count.modify<DeviceType>();
@@ -531,7 +533,9 @@ void Comm::exchange(Atom &atom_, bool preprocess)
     }
     Kokkos::deep_copy(exc_copylist,h_exc_copylist);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<TagExchangePack>(0,count.h_view(0)),*this);
+    Kokkos::parallel_for(Kokkos::Experimental::require(
+          Kokkos::RangePolicy<TagExchangePack>(comm_instance,0,count.h_view(0)),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 
     atom.nlocal -= count.h_view(0);
     Kokkos::fence();
@@ -615,7 +619,9 @@ void Comm::exchange(Atom &atom_, bool preprocess)
 
     nrecv = 0;
 
-    Kokkos::parallel_reduce(Kokkos::RangePolicy<TagExchangeCountRecv>(0,nrecv_atoms),*this,nrecv);
+    Kokkos::parallel_reduce(Kokkos::Experimental::require(
+          Kokkos::RangePolicy<TagExchangeCountRecv>(comm_instance,0,nrecv_atoms),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this, nrecv);
 
     nlocal = atom.nlocal;
 
@@ -629,7 +635,9 @@ void Comm::exchange(Atom &atom_, bool preprocess)
     if(atom.nlocal>=atom.nmax)
       atom.growarray();
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<TagExchangeUnpack>(0,nrecv_atoms),*this);
+    Kokkos::parallel_for(Kokkos::Experimental::require(
+          Kokkos::RangePolicy<TagExchangeUnpack>(comm_instance,0,nrecv_atoms),
+          Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
     Kokkos::fence();
 
   }
@@ -740,7 +748,9 @@ void Comm::borders(Atom &atom_, bool preprocess)
 
       send_count = count.d_view;
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderSendlist>(nfirst,nlast),*this);
+      Kokkos::parallel_for(Kokkos::Experimental::require(
+            Kokkos::RangePolicy<TagBorderSendlist>(comm_instance,nfirst,nlast),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 
       count.modify<DeviceType>();
       count.sync<HostType>();
@@ -756,7 +766,9 @@ void Comm::borders(Atom &atom_, bool preprocess)
         count.modify<HostType>();
         count.sync<DeviceType>();
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderSendlist>(nfirst,nlast),*this);
+        Kokkos::parallel_for(Kokkos::Experimental::require(
+              Kokkos::RangePolicy<TagBorderSendlist>(comm_instance,nfirst,nlast),
+              Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 
         count.modify<DeviceType>();
         count.sync<HostType>();
@@ -767,7 +779,9 @@ void Comm::borders(Atom &atom_, bool preprocess)
         growsend(nsend * 4);
       }
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderPack>(0,nsend),*this);
+      Kokkos::parallel_for(Kokkos::Experimental::require(
+            Kokkos::RangePolicy<TagBorderPack>(comm_instance,0,nsend),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
       Kokkos::fence();
       /* swap atoms with other proc
       put incoming ghosts at end of my atom arrays
@@ -830,7 +844,9 @@ void Comm::borders(Atom &atom_, bool preprocess)
 
       x = atom.x;
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderUnpack>(0,nrecv),*this);
+      Kokkos::parallel_for(Kokkos::Experimental::require(
+            Kokkos::RangePolicy<TagBorderUnpack>(comm_instance,0,nrecv),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
       Kokkos::fence();
 
       /* set all pointers & counters */
