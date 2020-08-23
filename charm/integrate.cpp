@@ -64,7 +64,9 @@ void Integrate::operator() (TagInitialIntegrate, const int& i) const {
 void Integrate::finalIntegrate()
 {
   NVTXTracer("finalIntegrate", NVTXColor::Turquoise);
-  Kokkos::parallel_for(Kokkos::RangePolicy<TagFinalIntegrate>(0,nlocal), *this);
+  Kokkos::parallel_for(Kokkos::Experimental::require(
+        Kokkos::RangePolicy<TagFinalIntegrate>(compute_instance,0,nlocal),
+        Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
 KOKKOS_INLINE_FUNCTION
