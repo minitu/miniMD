@@ -55,7 +55,7 @@ class Force
     virtual ~Force() {};
     virtual void setup() {};
     virtual void finalise() {};
-    virtual void compute(Atom &, Neighbor &, Comm &, int) {};
+    virtual void compute(Atom &, Neighbor &, Comm*, int) {};
 
     int use_sse;
     int use_oldcompute;

@@ -60,7 +60,7 @@ class ForceLJ : Force
     ForceLJ(int ntypes_);
     virtual ~ForceLJ();
     void setup();
-    void compute(Atom &, Neighbor &, Comm &, int);
+    void compute(Atom &, Neighbor &, Comm*, int);
 
   protected:
 

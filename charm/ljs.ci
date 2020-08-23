@@ -113,6 +113,11 @@ module block {
         if (sort > 0)
           atom.sort(neighbor);
         comm->borders(atom);
+
+        force->evflag = 1;
+        neighbor.build(atom);
+
+        force->compute(atom, neighbor, comm, thisIndex);
       }
 
       // Loop over integrate iterations

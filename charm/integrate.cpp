@@ -156,7 +156,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       Kokkos::Profiling::pushRegion("force");
       force->evflag = (n + 1) % thermo.nstat == 0;
-      force->compute(atom, neighbor, comm, comm.index);
+      force->compute(atom, neighbor, &comm, comm.index);
       Kokkos::fence();
       Kokkos::Profiling::popRegion();
 

@@ -86,7 +86,7 @@ void ForceEAM::setup()
 }
 
 
-void ForceEAM::compute(Atom &atom, Neighbor &neighbor, Comm &comm, int me)
+void ForceEAM::compute(Atom &atom, Neighbor &neighbor, Comm* comm, int me)
 {
   if(neighbor.halfneigh)
     return compute_halfneigh(atom, neighbor, comm, me);
@@ -96,7 +96,7 @@ void ForceEAM::compute(Atom &atom, Neighbor &neighbor, Comm &comm, int me)
 }
 /* ---------------------------------------------------------------------- */
 
-void ForceEAM::compute_halfneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int me)
+void ForceEAM::compute_halfneigh(Atom &atom, Neighbor &neighbor, Comm* comm, int me)
 {
   virial = 0;
   // grow energy and fp arrays if necessary
@@ -348,7 +348,7 @@ void ForceEAM::operator() (TagHalfNeighFinal<EVFLAG> , const int& i, eng_virial_
 }
 /* ---------------------------------------------------------------------- */
 
-void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int me)
+void ForceEAM::compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm* comm, int me)
 {
 
   eng_virial_type t_eng_virial;
@@ -939,34 +939,34 @@ void ForceEAM::grab(FILE* fptr, MMD_int n, MMD_float* list)
   }
 }
 
-void ForceEAM::communicate(Atom &atom, Comm &comm)
+void ForceEAM::communicate(Atom &atom, Comm* comm)
 {
 
   int iswap;
   float_1d_view_type buf;
 
-  for(iswap = 0; iswap < comm.nswap; iswap++) {
+  for(iswap = 0; iswap < comm->nswap; iswap++) {
 
     /* pack buffer */
 
-    int size = pack_comm(comm.sendnum[iswap], iswap, comm.buf_send, comm.sendlist);
+    int size = pack_comm(comm->sendnum[iswap], iswap, comm->buf_send, comm->sendlist);
 
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
-    if(comm.sendchare[iswap] != me) {
+    if(comm->sendchare[iswap] != me) {
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-      MPI_Sendrecv(comm.buf_send.data(), comm.comm_send_size[iswap], type, comm.sendchare[iswap], 0,
-                   comm.buf_recv.data(), comm.comm_recv_size[iswap], type, comm.recvchare[iswap], 0,
+      MPI_Sendrecv(comm->buf_send.data(), comm->comm_send_size[iswap], type, comm->sendchare[iswap], 0,
+                   comm->buf_recv.data(), comm->comm_recv_size[iswap], type, comm->recvchare[iswap], 0,
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                    */
-      buf = comm.buf_recv;
-    } else buf = comm.buf_send;
+      buf = comm->buf_recv;
+    } else buf = comm->buf_send;
 
     /* unpack buffer */
 
-    unpack_comm(comm.recvnum[iswap], comm.firstrecv[iswap], buf);
+    unpack_comm(comm->recvnum[iswap], comm->firstrecv[iswap], buf);
   }
 }
 /* ---------------------------------------------------------------------- */

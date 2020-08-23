@@ -86,7 +86,7 @@ class ForceEAM : Force
 
     ForceEAM(int ntypes_);
     virtual ~ForceEAM();
-    virtual void compute(Atom &atom, Neighbor &neighbor, Comm &comm, int me);
+    virtual void compute(Atom &atom, Neighbor &neighbor, Comm* comm, int me);
     virtual void coeff(const char*);
     virtual void setup();
     void init_style();
@@ -127,8 +127,8 @@ class ForceEAM : Force
     void operator() (TagEAMUnpackComm, const int& i) const;
 
   protected:
-    void compute_halfneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int me);
-    void compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm &comm, int me);
+    void compute_halfneigh(Atom &atom, Neighbor &neighbor, Comm* comm, int me);
+    void compute_fullneigh(Atom &atom, Neighbor &neighbor, Comm* comm, int me);
 
     // per-atom arrays
 
@@ -158,7 +158,7 @@ class ForceEAM : Force
 
     void bounds(char* str, int nmax, int &nlo, int &nhi);
 
-    void communicate(Atom &atom, Comm &comm);
+    void communicate(Atom &atom, Comm* comm);
 };
 
 

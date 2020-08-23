@@ -99,7 +99,7 @@ void ForceLJ::setup()
 }
 
 
-void ForceLJ::compute(Atom &atom, Neighbor &neighbor, Comm &comm, int me)
+void ForceLJ::compute(Atom &atom, Neighbor &neighbor, Comm* comm, int me)
 {
   NVTXTracer("ForceLJ::compute", NVTXColor::GreenSea);
   eng_vdwl = 0;
