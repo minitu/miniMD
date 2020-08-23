@@ -102,7 +102,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       if((n + 1) % neighbor.every) {
 
-        comm->communicate(atom);
+        comm->communicate(atom, false);
 
       } else {
           if(check_safeexchange) {
@@ -142,12 +142,12 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
           }
 
-          comm->exchange(atom);
+          comm->exchange(atom, false);
           if(n+1>=next_sort) {
             atom.sort(neighbor);
             next_sort +=  sort_every;
           }
-          comm->borders(atom);
+          comm->borders(atom, false);
 
         Kokkos::fence();
 
@@ -165,7 +165,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
 
       if(neighbor.halfneigh && neighbor.ghost_newton) {
-        comm->reverse_communicate(atom);
+        comm->reverse_communicate(atom, false);
 
       }
 

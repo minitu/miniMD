@@ -107,10 +107,10 @@ module block {
 
     entry [threaded] void run() {
       serial "preprocess" {
-        comm->exchange(atom);
+        comm->exchange(atom, true);
         if (sort > 0)
           atom.sort(neighbor);
-        comm->borders(atom);
+        comm->borders(atom, true);
 
         force->evflag = 1;
         neighbor.build(atom);
@@ -118,7 +118,7 @@ module block {
         force->compute(atom, neighbor, comm, thisIndex);
 
         if (neighbor.halfneigh && neighbor.ghost_newton)
-          comm->reverse_communicate(atom);
+          comm->reverse_communicate(atom, true);
 
         thermo.compute(0, atom, neighbor, force, comm);
       }
@@ -136,7 +136,7 @@ module block {
         force->compute(atom, neighbor, comm, thisIndex);
 
         if (neighbor.halfneigh && neighbor.ghost_newton)
-          comm->reverse_communicate(atom);
+          comm->reverse_communicate(atom, false);
 
         thermo.compute(-1, atom, neighbor, force, comm);
 

@@ -61,6 +61,8 @@ Comm::Comm()
   do_safeexchange = 0;
   maxnlocal = 0;
   count = Kokkos::DualView<int*>("comm::count",1);
+  h_exc_alloc = false;
+  h_buf_alloc = false;
 
   // Save pointer to Block bound array element
   block = (void*)block_proxy(thisIndex).ckLocal();
@@ -284,10 +286,17 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
 
 /* communication of atom info every timestep */
 
-void Comm::communicate(Atom &atom)
+void Comm::communicate(Atom &atom, bool preprocess)
 {
   NVTXTracer("Comm::communicate", NVTXColor::PeterRiver);
   Kokkos::Profiling::pushRegion("Comm::communicate");
+
+  // Create host mirrors for integrate loop
+  if (!preprocess && !h_buf_alloc) {
+    h_buf_alloc = true;
+    h_buf_send = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_send);
+    h_buf_recv = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_recv);
+  }
 
   int iswap;
   int pbc_flags[4];
@@ -309,9 +318,12 @@ void Comm::communicate(Atom &atom)
        if self, set recv buffer to send buffer */
 
       // Move data on device to host for communication
-      // TODO: Check if create_mirror_view is done only once
-      h_buf_send = Kokkos::create_mirror_view(buf_send);
-      h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+      if (preprocess) {
+        h_buf_send = Kokkos::create_mirror_view(buf_send);
+        h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+      } else {
+        CmiEnforce(h_buf_alloc);
+      }
       Kokkos::deep_copy(h_buf_send, buf_send);
 
       send1 = h_buf_send.data();
@@ -343,10 +355,17 @@ void Comm::communicate(Atom &atom)
 
 /* reverse communication of atom info every timestep */
 
-void Comm::reverse_communicate(Atom &atom)
+void Comm::reverse_communicate(Atom &atom, bool preprocess)
 {
   NVTXTracer("Comm::reverse_communicate", NVTXColor::PeterRiver);
   Kokkos::Profiling::pushRegion("Comm::reverse_communicate");
+
+  // Create host mirrors for integrate loop
+  if (!preprocess && !h_buf_alloc) {
+    h_buf_alloc = true;
+    h_buf_send = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_send);
+    h_buf_recv = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_recv);
+  }
 
   int iswap;
 
@@ -363,10 +382,14 @@ void Comm::reverse_communicate(Atom &atom)
        if self, set recv buffer to send buffer */
 
     if(sendchare[iswap] != index) {
+
       // Move data on device to host for communication
-      // TODO: Check if create_mirror_view is done only once
-      h_buf_send = Kokkos::create_mirror_view(buf_send);
-      h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+      if (preprocess) {
+        h_buf_send = Kokkos::create_mirror_view(buf_send);
+        h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+      } else {
+        CmiEnforce(h_buf_alloc);
+      }
       Kokkos::deep_copy(h_buf_send, buf_send);
 
       send1 = h_buf_send.data();
@@ -404,7 +427,7 @@ void Comm::reverse_communicate(Atom &atom)
    atoms exchanged with all 6 stencil neighbors
 */
 
-void Comm::exchange(Atom &atom_)
+void Comm::exchange(Atom &atom_, bool preprocess)
 {
   NVTXTracer("Comm::exchange", NVTXColor::WetAsphalt);
   Kokkos::Profiling::pushRegion("exchange");
@@ -414,6 +437,21 @@ void Comm::exchange(Atom &atom_)
   /* enforce PBC */
 
   atom.pbc();
+
+  // Create host mirrors for integrate loop
+  if (!preprocess) {
+    if (!h_exc_alloc) {
+      h_exc_alloc = true;
+      h_exc_sendflag = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), exc_sendflag);
+      h_exc_copylist = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), exc_copylist);
+      h_exc_sendlist = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), exc_sendlist);
+    }
+    if (!h_buf_alloc) {
+      h_buf_alloc = true;
+      h_buf_send = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_send);
+      h_buf_recv = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_recv);
+    }
+  }
 
   /* loop over dimensions */
 
@@ -443,12 +481,13 @@ void Comm::exchange(Atom &atom_)
     nlocal = atom.nlocal;
 
     if (exc_sendflag.extent(0)<nlocal) {
+      CmiEnforce(preprocess);
       Kokkos::resize(exc_sendflag,nlocal);
     }
 
     count.h_view(0) = exc_sendlist.extent(0);
 
-    while (count.h_view(0)>=exc_sendlist.extent(0)) {
+    while (count.h_view(0) >= exc_sendlist.extent(0)) {
       count.h_view(0) = 0;
       count.modify<HostType>();
       count.sync<DeviceType>();
@@ -460,16 +499,21 @@ void Comm::exchange(Atom &atom_)
       count.sync<HostType>();
       if ((count.h_view(0)>=exc_sendlist.extent(0)) ||
           (count.h_view(0)>=exc_copylist.extent(0)) ) {
+        CmiEnforce(preprocess);
         Kokkos::resize(exc_sendlist,(count.h_view(0)+1)*1.1);
         Kokkos::resize(exc_copylist,(count.h_view(0)+1)*1.1);
         count.h_view(0)=exc_sendlist.extent(0);
       }
-      if (count.h_view(0)*7>=maxsend)
+      if (count.h_view(0)*7>=maxsend) {
+        CmiEnforce(preprocess);
         growsend(count.h_view(0));
+      }
     }
-    h_exc_sendflag = Kokkos::create_mirror_view(exc_sendflag);
-    h_exc_copylist = Kokkos::create_mirror_view(exc_copylist);
-    h_exc_sendlist = Kokkos::create_mirror_view(exc_sendlist);
+    if (preprocess) {
+      h_exc_sendflag = Kokkos::create_mirror_view(exc_sendflag);
+      h_exc_copylist = Kokkos::create_mirror_view(exc_copylist);
+      h_exc_sendlist = Kokkos::create_mirror_view(exc_sendlist);
+    }
 
     Kokkos::deep_copy(h_exc_sendflag,exc_sendflag);
     Kokkos::deep_copy(h_exc_copylist,exc_copylist);
@@ -523,13 +567,19 @@ void Comm::exchange(Atom &atom_)
     }
     */
 
-    if (nrecv > maxrecv) growrecv(nrecv);
+    if (nrecv > maxrecv) {
+      CmiEnforce(preprocess);
+      growrecv(nrecv);
+    }
     Kokkos::fence();
 
     // Move data on device to host for communication
-    // TODO: Check if create_mirror_view is done only once
-    h_buf_send = Kokkos::create_mirror_view(buf_send);
-    h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+    if (preprocess) {
+      h_buf_send = Kokkos::create_mirror_view(buf_send);
+      h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+    } else {
+      CmiEnforce(h_buf_alloc);
+    }
     Kokkos::deep_copy(h_buf_send, buf_send);
 
     send1 = static_cast<void*>(h_buf_send.data());
@@ -628,10 +678,18 @@ void Comm::operator() (TagExchangeUnpack, const int& i ) const {
    this routine is called before every reneighboring
 */
 
-void Comm::borders(Atom &atom_)
+void Comm::borders(Atom &atom_, bool preprocess)
 {
   NVTXTracer("Comm::borders", NVTXColor::Carrot);
   Kokkos::Profiling::pushRegion("Comm::borders");
+
+  // Create host mirrors for integrate loop
+  if (!preprocess && !h_buf_alloc) {
+    h_buf_alloc = true;
+    h_buf_send = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_send);
+    h_buf_recv = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_recv);
+  }
+
   atom = atom_;
   int ineed, nsend, nrecv, nfirst, nlast;
 
@@ -689,6 +747,7 @@ void Comm::borders(Atom &atom_)
 
       nsend = count.h_view(0);
       if(nsend > exc_sendlist.extent(0)) {
+        CmiEnforce(preprocess);
         Kokkos::resize(exc_sendlist , nsend);
 
         growlist(iswap, nsend);
@@ -703,7 +762,10 @@ void Comm::borders(Atom &atom_)
         count.sync<HostType>();
       }
 
-      if(nsend * 4 > maxsend) growsend(nsend * 4);
+      if(nsend * 4 > maxsend) {
+        CmiEnforce(preprocess);
+        growsend(nsend * 4);
+      }
 
       Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderPack>(0,nsend),*this);
       Kokkos::fence();
@@ -719,12 +781,18 @@ void Comm::borders(Atom &atom_)
           recv1 = static_cast<void*>(&nrecv);
           block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
 
-          if(nrecv * atom.border_size > maxrecv) growrecv(nrecv * atom.border_size);
+          if(nrecv * atom.border_size > maxrecv) {
+            CmiEnforce(preprocess);
+            growrecv(nrecv * atom.border_size);
+          }
 
           // Move data on device to host for communication
-          // TODO: Check if create_mirror_view is done only once
-          h_buf_send = Kokkos::create_mirror_view(buf_send);
-          h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+          if (preprocess) {
+            h_buf_send = Kokkos::create_mirror_view(buf_send);
+            h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+          } else {
+            CmiEnforce(h_buf_alloc);
+          }
           Kokkos::deep_copy(h_buf_send, buf_send);
 
           send1 = static_cast<void*>(h_buf_send.data());
@@ -790,9 +858,15 @@ void Comm::borders(Atom &atom_)
     max2 = MAX(max2, reverse_recv_size[iswap]);
   }
 
-  if(max1 > maxsend) growsend(max1);
+  if(max1 > maxsend) {
+    CmiEnforce(preprocess);
+    growsend(max1);
+  }
 
-  if(max2 > maxrecv) growrecv(max2);
+  if(max2 > maxrecv) {
+    CmiEnforce(preprocess);
+    growrecv(max2);
+  }
   atom_ = atom;
 
   Kokkos::Profiling::popRegion();

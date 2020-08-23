@@ -70,10 +70,10 @@ class Comm : public CBase_Comm
     ~Comm();
     void init();
     int setup(MMD_float, Atom &);
-    void communicate(Atom &);
-    void reverse_communicate(Atom &);
-    void exchange(Atom &);
-    void borders(Atom &);
+    void communicate(Atom &, bool);
+    void reverse_communicate(Atom &, bool);
+    void exchange(Atom &, bool);
+    void borders(Atom &, bool);
     //void send(int, int, CkCallback cb);
     void growsend(int);
     void growrecv(int);
@@ -106,12 +106,14 @@ class Comm : public CBase_Comm
     int_1d_host_view_type h_exc_sendlist;
     int_1d_host_view_type h_exc_copylist;
     int_1d_dual_view_type count;
+    bool h_exc_alloc;
 
     float_1d_view_type buf_send;                 // send buffer for all comm
     float_1d_view_type buf_recv;                 // recv buffer for all comm
     float_1d_view_type buf;
     float_1d_host_view_type h_buf_send;
     float_1d_host_view_type h_buf_recv;
+    bool h_buf_alloc;
     int maxsend;
     int maxrecv;
 
