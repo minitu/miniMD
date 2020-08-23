@@ -46,7 +46,9 @@ void Integrate::setup()
 void Integrate::initialIntegrate()
 {
   NVTXTracer("initialIntegrate", NVTXColor::Turquoise);
-  Kokkos::parallel_for(Kokkos::RangePolicy<TagInitialIntegrate>(0,nlocal), *this);
+  Kokkos::parallel_for(Kokkos::Experimental::require(
+        Kokkos::RangePolicy<TagInitialIntegrate>(compute_instance,0,nlocal),
+        Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
 KOKKOS_INLINE_FUNCTION
