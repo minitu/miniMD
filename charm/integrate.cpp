@@ -73,7 +73,7 @@ void Integrate::operator() (TagFinalIntegrate, const int& i) const {
 }
 
 void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
-                    Comm* comm, Thermo &thermo)
+                    Comm* comm, Thermo &thermo, int index)
 {
   int i, n;
 
@@ -85,6 +85,9 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
     int next_sort = sort_every>0?sort_every:ntimes+1;
 
     for(n = 0; n < ntimes; n++) {
+      if (index == 0 && (n == 0 || n % 10 == 0)) {
+        CkPrintf("[Block] Starting iteration %d\n", n);
+      }
 
       Kokkos::fence();
 

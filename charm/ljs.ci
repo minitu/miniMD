@@ -106,8 +106,6 @@ module block {
     entry void contCreateVelocity(double vxtot, double vytot, double vztot);
 
     entry [threaded] void run() {
-      serial { CkPrintf("Block %d running...\n", thisIndex); }
-
       serial "preprocess" {
         comm->exchange(atom);
         if (sort > 0)
@@ -122,19 +120,27 @@ module block {
         if (neighbor.halfneigh && neighbor.ghost_newton)
           comm->reverse_communicate(atom);
 
-        if (thisIndex == 0) {
-          CkPrintf("# Starting dynamics...\n");
-          CkPrintf("# Timestep T U P Time\n");
-        }
-
         thermo.compute(0, atom, neighbor, force, comm);
       }
 
-      // Loop over integrate iterations
-      for (iter = 0; iter < in_ntimes; iter++) {
+      serial "integrate" {
+        // Main iteration loop
+        integrate.run(atom, force, neighbor, comm, thermo, thisIndex);
       }
 
       serial "postprocess" {
+        force->evflag = 1;
+        force->compute(atom, neighbor, comm, thisIndex);
+
+        if (neighbor.halfneigh && neighbor.ghost_newton)
+          comm->reverse_communicate(atom);
+
+        thermo.compute(-1, atom, neighbor, force, comm);
+
+        // XXX: Missing performance summary and yaml output
+
+        neighbor.dealloc();
+        delete force;
       }
 
       serial {
