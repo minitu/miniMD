@@ -185,8 +185,8 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   pbc_flagx = int_1d_host_view_type("Comm::pbc_flagx",maxswap);
   pbc_flagy = int_1d_host_view_type("Comm::pbc_flagy",maxswap);
   pbc_flagz = int_1d_host_view_type("Comm::pbc_flagz",maxswap);
-  sendproc = int_1d_host_view_type("Comm::sendproc",maxswap);
-  recvproc = int_1d_host_view_type("Comm::recvproc",maxswap);
+  sendchare = int_1d_host_view_type("Comm::sendchare",maxswap);
+  recvchare = int_1d_host_view_type("Comm::recvchare",maxswap);
   sendnum = int_1d_host_view_type("Comm::sendnum",maxswap);
   recvnum = int_1d_host_view_type("Comm::recvnum",maxswap);
   comm_send_size = int_1d_host_view_type("Comm::comm_send_size",maxswap);
@@ -203,8 +203,8 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   sendlist = int_2d_lr_view_type("Comm::sendlist",maxswap,BUFMIN);
 
   /* setup 4 parameters for each exchange: (spart,rpart,slablo,slabhi)
-     sendproc(nswap) = proc to send to at each swap
-     recvproc(nswap) = proc to recv from at each swap
+     sendchare(nswap) = chare to send to at each swap
+     recvchare(nswap) = chare to recv from at each swap
      slablo/slabhi(nswap) = slab boundaries (in correct dimension) of atoms
                             to send at each swap
      1st part of if statement is sending to the west/south/down
@@ -226,8 +226,8 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
       pbc_flagz[nswap] = 0;
 
       if(ineed % 2 == 0) {
-        sendproc[nswap] = chareneigh[idim][0];
-        recvproc[nswap] = chareneigh[idim][1];
+        sendchare[nswap] = chareneigh[idim][0];
+        recvchare[nswap] = chareneigh[idim][1];
         nbox = myloc[idim] + ineed / 2;
         lo = nbox * prd[idim] / charegrid[idim];
 
@@ -249,8 +249,8 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
           if(idim == 2) pbc_flagz[nswap] = 1;
         }
       } else {
-        sendproc[nswap] = chareneigh[idim][1];
-        recvproc[nswap] = chareneigh[idim][0];
+        sendchare[nswap] = chareneigh[idim][1];
+        recvchare[nswap] = chareneigh[idim][0];
         nbox = myloc[idim] - ineed / 2;
         hi = (nbox + 1) * prd[idim] / charegrid[idim];
 
@@ -302,7 +302,7 @@ void Comm::communicate(Atom &atom)
     pbc_flags[3] = pbc_flagz[iswap];
 
     int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
-    if(sendproc[iswap] != index) {
+    if(sendchare[iswap] != index) {
       atom.pack_comm(sendnum[iswap], list, buf_send, pbc_flags);
       Kokkos::fence();
     /* exchange with another proc
@@ -310,8 +310,8 @@ void Comm::communicate(Atom &atom)
 
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-      MPI_Sendrecv(buf_send.data(), comm_send_size[iswap], type, sendproc[iswap], 0,
-                   buf_recv.data(), comm_recv_size[iswap], type, recvproc[iswap], 0,
+      MPI_Sendrecv(buf_send.data(), comm_send_size[iswap], type, sendchare[iswap], 0,
+                   buf_recv.data(), comm_recv_size[iswap], type, recvchare[iswap], 0,
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                    */
 
@@ -347,12 +347,12 @@ void Comm::reverse_communicate(Atom &atom)
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
-    if(sendproc[iswap] != index) {
+    if(sendchare[iswap] != index) {
 
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-      MPI_Sendrecv(buf_send.data(), reverse_send_size[iswap], type, recvproc[iswap], 0,
-               buf_recv.data(), reverse_recv_size[iswap], type, sendproc[iswap], 0,
+      MPI_Sendrecv(buf_send.data(), reverse_send_size[iswap], type, recvchare[iswap], 0,
+               buf_recv.data(), reverse_recv_size[iswap], type, sendchare[iswap], 0,
                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                */
 
@@ -679,17 +679,38 @@ void Comm::borders(Atom &atom_)
       if swapping with self, simply copy, no messages */
 
 
-        if(sendproc[iswap] != index) {
+        if(sendchare[iswap] != index) {
+          send1 = static_cast<void*>(&nsend);
+          send1_size = sizeof(int);
+          recv1 = static_cast<void*>(&nrecv);
+          block_proxy[thisIndex].borders_nb(iswap, CkCallbackResumeThread());
+
+          if(nrecv * atom.border_size > maxrecv) growrecv(nrecv * atom.border_size);
+
+          // Move data on device to host for communication
+          // TODO: Check if create_mirror_view is done only once
+          h_buf_send = Kokkos::create_mirror_view(buf_send);
+          h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+          Kokkos::deep_copy(h_buf_send, buf_send);
+
+          send1 = static_cast<void*>(h_buf_send.data());
+          send1_size = nsend * atom.border_size * sizeof(MMD_float);
+          recv1 = h_buf_recv.data();
+          block_proxy[thisIndex].borders_nb(iswap, CkCallbackResumeThread());
+
+          // Move received data to device
+          Kokkos::deep_copy(buf_recv, h_buf_recv);
+
           /*
-          MPI_Sendrecv(&nsend, 1, MPI_INT, sendproc[iswap], 0,
-                       &nrecv, 1, MPI_INT, recvproc[iswap], 0,
+          MPI_Sendrecv(&nsend, 1, MPI_INT, sendchare[iswap], 0,
+                       &nrecv, 1, MPI_INT, recvchare[iswap], 0,
                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
           if(nrecv * atom.border_size > maxrecv) growrecv(nrecv * atom.border_size);
 
           MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-          MPI_Sendrecv(buf_send.data(), nsend * atom.border_size, type, sendproc[iswap], 0,
-                       buf_recv.data(), nrecv * atom.border_size, type, recvproc[iswap], 0,
+          MPI_Sendrecv(buf_send.data(), nsend * atom.border_size, type, sendchare[iswap], 0,
+                       buf_recv.data(), nrecv * atom.border_size, type, recvchare[iswap], 0,
                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                        */
           buf = buf_recv;

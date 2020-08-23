@@ -110,6 +110,9 @@ module block {
 
       serial "preprocess" {
         comm->exchange(atom);
+        if (sort > 0)
+          atom.sort(neighbor);
+        comm->borders(atom);
       }
 
       // Loop over integrate iterations
@@ -124,6 +127,7 @@ module block {
       }
     }
 
+    // Non-blocking communication for Comm:exchange
     entry void exchange_nb(int idim, CkCallback cb) {
       serial {
         thisProxy[comm->chareneigh[idim][0]].recv(iter, (char*)comm->send1, comm->send1_size);
@@ -144,6 +148,18 @@ module block {
       }
 
       serial {
+        cb.send();
+      }
+    }
+
+    // Non-blocking communication for Comm:borders
+    entry void borders_nb(int iswap, CkCallback cb) {
+      serial {
+        thisProxy[comm->sendchare[iswap]].recv(iter, (char*)comm->send1, comm->send1_size);
+      }
+
+      when recv[iter](int ref, char data[size], size_t size) serial {
+        memcpy(comm->recv1, data, size);
         cb.send();
       }
     }

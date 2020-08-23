@@ -954,11 +954,11 @@ void ForceEAM::communicate(Atom &atom, Comm &comm)
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
-    if(comm.sendproc[iswap] != me) {
+    if(comm.sendchare[iswap] != me) {
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-      MPI_Sendrecv(comm.buf_send.data(), comm.comm_send_size[iswap], type, comm.sendproc[iswap], 0,
-                   comm.buf_recv.data(), comm.comm_recv_size[iswap], type, comm.recvproc[iswap], 0,
+      MPI_Sendrecv(comm.buf_send.data(), comm.comm_send_size[iswap], type, comm.sendchare[iswap], 0,
+                   comm.buf_recv.data(), comm.comm_recv_size[iswap], type, comm.recvchare[iswap], 0,
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                    */
       buf = comm.buf_recv;

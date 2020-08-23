@@ -93,7 +93,7 @@ class Comm : public CBase_Comm
     int_1d_host_view_type comm_recv_size;             // # of values to recv in each comm
     int_1d_host_view_type reverse_send_size;          // # of values to send in each reverse
     int_1d_host_view_type reverse_recv_size;          // # of values to recv in each reverse
-    int_1d_host_view_type sendproc, recvproc;         // proc to send/recv with at each swap
+    int_1d_host_view_type sendchare, recvchare;       // chare to send/recv with at each swap
 
     int_1d_host_view_type firstrecv;                  // where to put 1st recv atom in each swap
     int_2d_lr_view_type sendlist;                   // list of atoms to send in each swap
