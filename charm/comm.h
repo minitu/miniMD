@@ -78,6 +78,7 @@ class Comm : public CBase_Comm
     void growsend(int);
     void growrecv(int);
     void growlist(int, int);
+    void suspend(Kokkos::Cuda);
 
   public:
     void* block;
@@ -134,6 +135,7 @@ class Comm : public CBase_Comm
     void *send1, *send2, *recv1, *recv2;
     size_t send1_size, send2_size;
     int send1_chare, send2_chare, recv1_chare, recv2_chare;
+    CkCallbackResumeThread* resume_cb;
 
   private:
     Atom atom;

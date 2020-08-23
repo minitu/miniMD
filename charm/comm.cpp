@@ -313,19 +313,26 @@ void Comm::communicate(Atom &atom, bool preprocess)
     int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
     if(sendchare[iswap] != index) {
       atom.pack_comm(sendnum[iswap], list, buf_send, pbc_flags);
-      Kokkos::fence();
     /* exchange with another proc
        if self, set recv buffer to send buffer */
 
       // Move data on device to host for communication
       if (preprocess) {
+        Kokkos::fence();
         h_buf_send = Kokkos::create_mirror_view(buf_send);
         h_buf_recv = Kokkos::create_mirror_view(buf_recv);
       } else {
         CmiEnforce(h_buf_alloc);
       }
-      Kokkos::deep_copy(h_buf_send, buf_send);
+      Kokkos::deep_copy(comm_instance, h_buf_send, buf_send);
 
+#ifdef CUDA_SYNC
+      comm_instance.fence();
+#else
+      suspend(comm_instance);
+#endif
+
+      // Send and suspend
       send1 = h_buf_send.data();
       send1_size = comm_send_size[iswap] * sizeof(MMD_float);
       send1_chare = sendchare[iswap];
@@ -333,7 +340,7 @@ void Comm::communicate(Atom &atom, bool preprocess)
       block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
 
       // Move received data to device
-      Kokkos::deep_copy(buf_recv, h_buf_recv);
+      Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
 
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
@@ -342,12 +349,18 @@ void Comm::communicate(Atom &atom, bool preprocess)
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                    */
 
+      // Unpack received data
       buf = buf_recv;
       atom.unpack_comm(recvnum[iswap], firstrecv[iswap], buf);
-      Kokkos::fence();
-    } else
+    } else {
       atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
-      Kokkos::fence();
+    }
+
+#ifdef CUDA_SYNC
+    comm_instance.fence();
+#else
+    suspend(comm_instance);
+#endif
   }
 
   Kokkos::Profiling::popRegion();
@@ -935,4 +948,10 @@ void Comm::growlist(int iswap, int n)
   for(int iswaps = 0; iswaps < maxswap; iswaps++) {
     maxsendlist[iswaps] = static_cast<int>(BUFFACTOR * n);
   }
+}
+
+void Comm::suspend(Kokkos::Cuda instance) {
+  resume_cb = new CkCallbackResumeThread();
+  hapiAddCallback(instance.cuda_stream(), resume_cb);
+  delete resume_cb;
 }
