@@ -94,8 +94,6 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
         CkPrintf("[Block] Starting iteration %d\n", n);
       }
 
-      Kokkos::fence();
-
       x = atom.x;
       v = atom.v;
       f = atom.f;
@@ -103,87 +101,101 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       nlocal = atom.nlocal;
 
       initialIntegrate();
-      Kokkos::fence();
+#ifdef CUDA_SYNC
+      compute_instance.fence();
+#else
+      // Ensure compute -> comm dependency
+      hapiCheck(cudaEventRecord(compute_event, compute_instance.cuda_stream()));
+      hapiCheck(cudaStreamWaitEvent(comm_instance.cuda_stream(), compute_event, 0));
+#endif
 
       if((n + 1) % neighbor.every) {
 
         comm->communicate(atom, false);
 
       } else {
-          if(check_safeexchange) {
-              double d_max = 0;
+        // TODO: Reneighboring not supported (not converted to async)
+        /*
+        if(check_safeexchange) {
+          double d_max = 0;
 
-              for(i = 0; i < atom.nlocal; i++) {
-                double dx = (x(i,0) - xold(i,0));
+          for(i = 0; i < atom.nlocal; i++) {
+            double dx = (x(i,0) - xold(i,0));
 
-                if(dx > atom.box.xprd) dx -= atom.box.xprd;
+            if(dx > atom.box.xprd) dx -= atom.box.xprd;
 
-                if(dx < -atom.box.xprd) dx += atom.box.xprd;
+            if(dx < -atom.box.xprd) dx += atom.box.xprd;
 
-                double dy = (x(i,1) - xold(i,1));
+            double dy = (x(i,1) - xold(i,1));
 
-                if(dy > atom.box.yprd) dy -= atom.box.yprd;
+            if(dy > atom.box.yprd) dy -= atom.box.yprd;
 
-                if(dy < -atom.box.yprd) dy += atom.box.yprd;
+            if(dy < -atom.box.yprd) dy += atom.box.yprd;
 
-                double dz = (x(i,2) - xold(i,2));
+            double dz = (x(i,2) - xold(i,2));
 
-                if(dz > atom.box.zprd) dz -= atom.box.zprd;
+            if(dz > atom.box.zprd) dz -= atom.box.zprd;
 
-                if(dz < -atom.box.zprd) dz += atom.box.zprd;
+            if(dz < -atom.box.zprd) dz += atom.box.zprd;
 
-                double d = dx * dx + dy * dy + dz * dz;
+            double d = dx * dx + dy * dy + dz * dz;
 
-                if(d > d_max) d_max = d;
-              }
+            if(d > d_max) d_max = d;
+          }
 
-              d_max = sqrt(d_max);
+          d_max = sqrt(d_max);
 
-              if((d_max > atom.box.xhi - atom.box.xlo) || (d_max > atom.box.yhi - atom.box.ylo) || (d_max > atom.box.zhi - atom.box.zlo))
-                printf("Warning: Atoms move further than your subdomain size, which will eventually cause lost atoms.\n"
+          if((d_max > atom.box.xhi - atom.box.xlo) || (d_max > atom.box.yhi - atom.box.ylo) || (d_max > atom.box.zhi - atom.box.zlo))
+            printf("Warning: Atoms move further than your subdomain size, which will eventually cause lost atoms.\n"
                 "Increase reneighboring frequency or choose a different processor grid\n"
                 "Maximum move distance: %lf; Subdomain dimensions: %lf %lf %lf\n",
                 d_max, atom.box.xhi - atom.box.xlo, atom.box.yhi - atom.box.ylo, atom.box.zhi - atom.box.zlo);
 
-          }
+        }
 
-          comm->exchange(atom, false);
-          if(n+1>=next_sort) {
-            atom.sort(neighbor);
-            next_sort +=  sort_every;
-          }
-          comm->borders(atom, false);
+        comm->exchange(atom, false);
+        if(n+1>=next_sort) {
+          atom.sort(neighbor);
+          next_sort +=  sort_every;
+        }
+        comm->borders(atom, false);
 
         Kokkos::fence();
 
-	Kokkos::Profiling::pushRegion("neighbor::build");
+        Kokkos::Profiling::pushRegion("neighbor::build");
         neighbor.build(atom);
-	Kokkos::Profiling::popRegion();
-
+        Kokkos::Profiling::popRegion();
+        */
       }
 
       Kokkos::Profiling::pushRegion("force");
       force->evflag = (n + 1) % thermo.nstat == 0;
       force->compute(atom, neighbor, comm, comm->index);
-      Kokkos::fence();
+#ifdef CUDA_SYNC
+      compute_instance.fence();
+#endif
       Kokkos::Profiling::popRegion();
 
 
       if(neighbor.halfneigh && neighbor.ghost_newton) {
+#if !defined CUDA_SYNC
+        // Ensure compute -> comm dependency
+        hapiCheck(cudaEventRecord(compute_event, compute_instance.cuda_stream()));
+        hapiCheck(cudaStreamWaitEvent(comm_instance.cuda_stream(), compute_event, 0));
+#endif
         comm->reverse_communicate(atom, false);
-
       }
 
       v = atom.v;
       f = atom.f;
       nlocal = atom.nlocal;
 
-      Kokkos::fence();
+      // Ensure comm->compute dependency
 
       finalIntegrate();
-      Kokkos::fence();
 
-      if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, comm);
+      // TODO: Support this, might require additional synchronization
+      //if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, comm);
     }
 }
 
