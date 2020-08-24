@@ -196,9 +196,3 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       //if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, comm);
     }
 }
-
-void Integrate::suspend(Kokkos::Cuda instance) {
-  resume_cb = new CkCallbackResumeThread();
-  hapiAddCallback(instance.cuda_stream(), resume_cb);
-  delete resume_cb;
-}
