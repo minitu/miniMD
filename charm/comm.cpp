@@ -352,15 +352,16 @@ void Comm::communicate(Atom &atom, bool preprocess)
       // Unpack received data
       buf = buf_recv;
       atom.unpack_comm(recvnum[iswap], firstrecv[iswap], buf);
-    } else {
-      atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
-    }
 
 #ifdef CUDA_SYNC
-    comm_instance.fence();
+      comm_instance.fence();
 #else
-    suspend(comm_instance);
+      suspend(comm_instance);
 #endif
+    } else {
+      // No need to synchronize for self packing
+      atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
+    }
   }
 
   Kokkos::Profiling::popRegion();

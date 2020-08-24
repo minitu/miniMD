@@ -190,8 +190,6 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       f = atom.f;
       nlocal = atom.nlocal;
 
-      // Ensure comm->compute dependency
-
       finalIntegrate();
 
       // TODO: Support this, might require additional synchronization

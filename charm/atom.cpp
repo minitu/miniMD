@@ -149,11 +149,11 @@ void Atom::pack_comm_self(int n, int_1d_view_type list_in, int first_in, int* pb
 
   if(pbc_flags[0] == 0) {
     Kokkos::parallel_for(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagAtomPackCommSelfNoPBC>(comm_instance,0,n),
+          Kokkos::RangePolicy<TagAtomPackCommSelfNoPBC>(compute_instance,0,n),
           Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
   } else {
     Kokkos::parallel_for(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagAtomPackCommSelfPBC>(comm_instance,0,n),
+          Kokkos::RangePolicy<TagAtomPackCommSelfPBC>(compute_instance,0,n),
           Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
   }
 }
