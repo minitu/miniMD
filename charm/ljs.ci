@@ -112,6 +112,7 @@ module block {
           atom.sort(neighbor);
         comm->borders(atom, true);
 
+        /*
         force->evflag = 1;
         neighbor.build(atom);
 
@@ -121,17 +122,19 @@ module block {
           comm->reverse_communicate(atom, true);
 
         thermo.compute(0, atom, neighbor, force, comm);
+        */
       }
 
       serial "integrate" {
         // Main iteration loop
         double start_time = CkWallTimer();
-        integrate.run(atom, force, neighbor, comm, thermo, thisIndex);
+        //integrate.run(atom, force, neighbor, comm, thermo, thisIndex);
         double total_time = CkWallTimer() - start_time;
         if (thisIndex == 0) CkPrintf("# Total time: %.6lf s\n", total_time);
       }
 
       serial "postprocess" {
+        /*
         force->evflag = 1;
         force->compute(atom, neighbor, comm, thisIndex);
 
@@ -144,6 +147,7 @@ module block {
 
         neighbor.dealloc();
         delete force;
+        */
       }
 
       serial {
