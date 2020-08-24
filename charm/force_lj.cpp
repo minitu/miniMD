@@ -124,7 +124,9 @@ void ForceLJ::compute(Atom &atom, Neighbor &neighbor, Comm* comm, int me)
 
   // clear force on own and ghost atoms
 
-  Kokkos::deep_copy(f,0.0);
+  Kokkos::parallel_for(Kokkos::Experimental::require(
+        Kokkos::RangePolicy<TagClearForces>(compute_instance,0,nlocal),
+        Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 
   /* switch to correct compute */
 
@@ -354,6 +356,13 @@ void ForceLJ::compute_fullneigh(Atom &atom, Neighbor &neighbor, int me)
 
   eng_vdwl += t_eng_virial.eng;
   virial += t_eng_virial.virial;
+}
+
+KOKKOS_INLINE_FUNCTION
+void ForceLJ::operator() (TagClearForces, const int& i) const {
+  f(i,0) = 0.0;
+  f(i,1) = 0.0;
+  f(i,2) = 0.0;
 }
 
 template<int EVFLAG, int GHOST_NEWTON, int STACK_PARAMS>

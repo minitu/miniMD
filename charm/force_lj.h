@@ -45,6 +45,7 @@ class ForceLJ : Force
 
     typedef eng_virial_type value_type;
 
+    struct TagClearForces {};
     template<int EVFLAG, int GHOST_NEWTON, int STACK_PARAMS>
     struct TagComputeHalfNeighThread {
       enum {evflag = EVFLAG};
@@ -76,6 +77,8 @@ class ForceLJ : Force
     void compute_fullneigh(Atom &, Neighbor &, int);
 
   public:
+    KOKKOS_INLINE_FUNCTION
+    void operator() (TagClearForces, const int& i) const;
     template<int EVFLAG, int GHOST_NEWTON, int STACK_PARAMS>
     KOKKOS_INLINE_FUNCTION
     void operator() (TagComputeHalfNeighThread<EVFLAG,GHOST_NEWTON,STACK_PARAMS> , const int& i ) const;
