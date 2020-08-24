@@ -389,7 +389,9 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
     /* pack buffer */
 
     atom.pack_reverse(recvnum[iswap], firstrecv[iswap], buf_send);
-    Kokkos::fence();
+    if (preprocess) {
+      Kokkos::fence();
+    }
 
     /* exchange with another proc
        if self, set recv buffer to send buffer */
@@ -403,8 +405,15 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
       } else {
         CmiEnforce(h_buf_alloc);
       }
-      Kokkos::deep_copy(h_buf_send, buf_send);
+      Kokkos::deep_copy(comm_instance, h_buf_send, buf_send);
 
+#ifdef CUDA_SYNC
+      comm_instance.fence();
+#else
+      suspend(comm_instance);
+#endif
+
+      // Send and suspend
       send1 = h_buf_send.data();
       send1_size = reverse_send_size[iswap] * sizeof(MMD_float);
       send1_chare = recvchare[iswap];
@@ -412,7 +421,7 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
       block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
 
       // Move received data to device
-      Kokkos::deep_copy(buf_recv, h_buf_recv);
+      Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
 
       /*
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
@@ -427,7 +436,11 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
     /* unpack buffer */
 
     atom.unpack_reverse(sendnum[iswap], list, buf);
-    Kokkos::fence();
+#ifdef CUDA_SYNC
+    comm_instance.fence();
+#else
+    suspend(comm_instance);
+#endif
   }
 
   Kokkos::Profiling::popRegion();
