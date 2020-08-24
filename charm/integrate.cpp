@@ -94,6 +94,9 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
         CkPrintf("[Block] Starting iteration %d\n", n);
       }
 
+      // Store iteration counter in Comm
+      comm->iter = n;
+
       x = atom.x;
       v = atom.v;
       f = atom.f;

@@ -85,6 +85,7 @@ class Comm : public CBase_Comm
 
   public:
     void* block;
+    int iter;
 
     int index;                                      // my chare index
     int nswap;                                   // # of swaps to perform

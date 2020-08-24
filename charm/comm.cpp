@@ -66,6 +66,7 @@ Comm::Comm()
 
   // Save pointer to Block bound array element
   block = (void*)block_proxy(thisIndex).ckLocal();
+  iter = 0;
 }
 
 Comm::~Comm() {}

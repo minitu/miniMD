@@ -24,8 +24,6 @@ public:
   Comm* comm;
   Force* force;
 
-  int iter;
-
   cudaStream_t compute_stream;
   cudaStream_t comm_stream;
 

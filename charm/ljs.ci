@@ -158,18 +158,18 @@ module block {
     // Non-blocking communication for Comm:exchange
     entry void exchange_nb(int idim, CkCallback cb) {
       serial {
-        thisProxy[comm->send1_chare].recv(iter, (char*)comm->send1, comm->send1_size);
+        thisProxy[comm->send1_chare].recv(comm->iter, (char*)comm->send1, comm->send1_size);
         if (comm->charegrid[idim] > 2) {
-          thisProxy[comm->send2_chare].recv(iter, (char*)comm->send2, comm->send2_size);
+          thisProxy[comm->send2_chare].recv(comm->iter, (char*)comm->send2, comm->send2_size);
         }
       }
 
       overlap {
-        when recv[iter](int ref, char data[size], size_t size) serial {
+        when recv[comm->iter](int ref, char data[size], size_t size) serial {
           memcpy(comm->recv1, data, size);
         }
         if (comm->charegrid[idim] > 2) {
-          when recv[iter](int ref, char data[size], size_t size) serial {
+          when recv[comm->iter](int ref, char data[size], size_t size) serial {
             memcpy(comm->recv2, data, size);
           }
         }
@@ -183,10 +183,10 @@ module block {
     // Non-blocking communication for Comm:borders, Comm::communicate
     entry void comm_nb(int iswap, CkCallback cb) {
       serial {
-        thisProxy[comm->send1_chare].recv(iter, (char*)comm->send1, comm->send1_size);
+        thisProxy[comm->send1_chare].recv(comm->iter, (char*)comm->send1, comm->send1_size);
       }
 
-      when recv[iter](int ref, char data[size], size_t size) serial {
+      when recv[comm->iter](int ref, char data[size], size_t size) serial {
         memcpy(comm->recv1, data, size);
         cb.send();
       }
