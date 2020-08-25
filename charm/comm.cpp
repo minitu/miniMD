@@ -339,7 +339,7 @@ void Comm::communicate(Atom &atom, bool preprocess)
       send1_size = comm_send_size[iswap] * sizeof(MMD_float);
       send1_chare = sendchare[iswap];
       recv1 = h_buf_recv.data();
-      //block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
+      block_proxy[thisIndex].comms(iswap, CkCallbackResumeThread());
 
       // Move received data to device
       Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
@@ -421,7 +421,7 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
       send1_size = reverse_send_size[iswap] * sizeof(MMD_float);
       send1_chare = recvchare[iswap];
       recv1 = h_buf_recv.data();
-      //block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
+      block_proxy[thisIndex].comms(iswap, CkCallbackResumeThread());
 
       // Move received data to device
       Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);

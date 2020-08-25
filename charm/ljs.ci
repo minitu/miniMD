@@ -112,7 +112,6 @@ module block {
           atom.sort(neighbor);
         comm->borders(atom, true);
 
-        /*
         force->evflag = 1;
         neighbor.build(atom);
 
@@ -121,8 +120,8 @@ module block {
         if (neighbor.halfneigh && neighbor.ghost_newton)
           comm->reverse_communicate(atom, true);
 
+        // TODO: Contains MPI_Allreduce calls
         thermo.compute(0, atom, neighbor, force, comm);
-        */
       }
 
       serial "integrate" {
@@ -236,6 +235,21 @@ module block {
 
     entry void borders_recv_1(int ref, char data[size], size_t size);
     entry void borders_recv_2(int ref, char data[size], size_t size);
+
+    // Non-blocking communication routines for Comm::communicate and Comm::reverse_communicate
+    entry void comms(int iswap, CkCallback cb) {
+      serial {
+        int tag = comm->nswap*comm->iter + iswap;
+        thisProxy[comm->send1_chare].comms_recv(tag, (char*)comm->send1, comm->send1_size);
+      }
+
+      when comms_recv[comm->nswap*comm->iter+iswap](int ref, char data[size], size_t size) serial {
+        memcpy(comm->recv1, data, size);
+        cb.send();
+      }
+    }
+
+    entry void comms_recv(int ref, char data[size], size_t size);
   };
 
   // Bound array to Block
