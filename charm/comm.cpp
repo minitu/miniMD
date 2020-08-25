@@ -460,7 +460,6 @@ void Comm::exchange(Atom &atom_, bool preprocess)
   NVTXTracer("Comm::exchange", NVTXColor::WetAsphalt);
   Kokkos::Profiling::pushRegion("exchange");
   atom = atom_;
-  int nsend, nrecv, nrecv1, nrecv2, nlocal;
 
   /* enforce PBC */
 
@@ -578,12 +577,7 @@ void Comm::exchange(Atom &atom_, bool preprocess)
     send2_chare = chareneigh[idim][1];
     recv1 = static_cast<void*>(&nrecv1);
     recv2 = static_cast<void*>(&nrecv2);
-    block_proxy[thisIndex].exchange_nb(idim, CkCallbackResumeThread());
-
-    nrecv = nrecv1;
-    if (charegrid[idim] > 2) {
-      nrecv += nrecv2;
-    }
+    block_proxy[thisIndex].exchange_1(idim, CkCallbackResumeThread());
 
     /*
     MPI_Sendrecv(&nsend, 1, MPI_INT, chareneigh[idim][0], 0,
@@ -622,7 +616,7 @@ void Comm::exchange(Atom &atom_, bool preprocess)
     send2_chare = chareneigh[idim][1];
     recv1 = h_buf_recv.data();
     recv2 = h_buf_recv.data() + nrecv1;
-    block_proxy[thisIndex].exchange_nb(idim, CkCallbackResumeThread());
+    block_proxy[thisIndex].exchange_2(idim, CkCallbackResumeThread());
 
     // Move received data to device
     Kokkos::deep_copy(buf_recv, h_buf_recv);

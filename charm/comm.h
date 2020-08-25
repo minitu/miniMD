@@ -136,6 +136,7 @@ class Comm : public CBase_Comm
     int nrecv_atoms;
 
     // Used for Charm++ communication
+    int nsend, nrecv, nrecv1, nrecv2, nlocal;
     void *send1, *send2, *recv1, *recv2;
     size_t send1_size, send2_size;
     int send1_chare, send2_chare, recv1_chare, recv2_chare;
