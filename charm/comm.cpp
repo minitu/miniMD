@@ -388,7 +388,7 @@ void Comm::communicate(Atom &atom, bool preprocess)
 
     // All buffers copied to host, send to neighbors
     // After receiving, move buffers to device and unpack
-    block_proxy[thisIndex].comms_all(CkCallbackResumeThread());
+    block_proxy[thisIndex].comm_all(CkCallbackResumeThread());
   }
 
   Kokkos::Profiling::popRegion();
@@ -404,71 +404,95 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
   // Create host mirrors for integrate loop
   if (!preprocess && !h_buf_alloc) {
     h_buf_alloc = true;
-    h_buf_send = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_send);
-    h_buf_recv = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_recv);
+    buf_comms_send = new float_1d_view_type[nswap];
+    buf_comms_recv = new float_1d_view_type[nswap];
+    h_buf_comms_send = new float_1d_host_view_type[nswap];
+    h_buf_comms_recv = new float_1d_host_view_type[nswap];
+    for (int i = 0; i < nswap; i++) {
+      buf_comms_send[i] = float_1d_view_type("Comm::buf_comms_send", maxsend + BUFEXTRA);
+      buf_comms_recv[i] = float_1d_view_type("Comm::buf_comms_recv", maxrecv);
+      h_buf_comms_send[i] = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_comms_send[i]);
+      h_buf_comms_recv[i] = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_comms_recv[i]);
+    }
   }
 
   int iswap;
 
-  for(iswap = nswap - 1; iswap >= 0; iswap--) {
+  if (preprocess) {
+    for(iswap = nswap - 1; iswap >= 0; iswap--) {
 
-    int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
+      int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
 
-    /* pack buffer */
-
-    atom.pack_reverse(recvnum[iswap], firstrecv[iswap], buf_send);
-    if (preprocess) {
+      // Pack buffer
+      atom.pack_reverse(recvnum[iswap], firstrecv[iswap], buf_send);
       Kokkos::fence();
-    }
 
-    /* exchange with another proc
-       if self, set recv buffer to send buffer */
+      // Exchange with another chare
+      // If self, set recv buffer to send buffer
+      if(sendchare[iswap] != index) {
 
-    if(sendchare[iswap] != index) {
-
-      // Move data on device to host for communication
-      if (preprocess) {
+        // Move data on device to host for communication
         h_buf_send = Kokkos::create_mirror_view(buf_send);
         h_buf_recv = Kokkos::create_mirror_view(buf_recv);
-      } else {
-        CmiEnforce(h_buf_alloc);
-      }
-      Kokkos::deep_copy(comm_instance, h_buf_send, buf_send);
+        Kokkos::deep_copy(comm_instance, h_buf_send, buf_send);
 
+#ifdef CUDA_SYNC
+        comm_instance.fence();
+#else
+        suspend(comm_instance);
+#endif
+
+        // Send and suspend
+        send1 = h_buf_send.data();
+        send1_size = reverse_send_size[iswap] * sizeof(MMD_float);
+        send1_chare = recvchare[iswap];
+        recv1 = h_buf_recv.data();
+        block_proxy[thisIndex].comms(iswap, CkCallbackResumeThread());
+
+        // Move received data to device
+        Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
+
+        buf = buf_recv;
+      } else buf = buf_send;
+
+      // unpack buffer
+      atom.unpack_reverse(sendnum[iswap], list, buf);
 #ifdef CUDA_SYNC
       comm_instance.fence();
 #else
       suspend(comm_instance);
 #endif
+    }
+  } else {
+    // XXX: Don't need to iterate backwards?
+    for (iswap = nswap-1; iswap >= 0; iswap--) {
+      int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
 
-      // Send and suspend
-      send1 = h_buf_send.data();
-      send1_size = reverse_send_size[iswap] * sizeof(MMD_float);
-      send1_chare = recvchare[iswap];
-      recv1 = h_buf_recv.data();
-      block_proxy[thisIndex].comms(iswap, CkCallbackResumeThread());
+      // Pack and move buffers to host
+      atom.pack_reverse(recvnum[iswap], firstrecv[iswap], buf_comms_send[iswap]);
+      if (sendchare[iswap] != index) {
+        Kokkos::deep_copy(comm_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
+      }
+    }
 
-      // Move received data to device
-      Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
-
-      /*
-      MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-      MPI_Sendrecv(buf_send.data(), reverse_send_size[iswap], type, recvchare[iswap], 0,
-               buf_recv.data(), reverse_recv_size[iswap], type, sendchare[iswap], 0,
-               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-               */
-
-      buf = buf_recv;
-    } else buf = buf_send;
-
-    /* unpack buffer */
-
-    atom.unpack_reverse(sendnum[iswap], list, buf);
 #ifdef CUDA_SYNC
     comm_instance.fence();
 #else
     suspend(comm_instance);
 #endif
+
+    // Unpack self
+    for (iswap = nswap-1; iswap >= 0; iswap--) {
+      int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
+
+      if (sendchare[iswap] == index) {
+        atom.unpack_reverse(sendnum[iswap], list, buf_comms_send[iswap]);
+      }
+    }
+
+    // All buffers copied to host, send to neighbors
+    // After receiving, move buffers to device and unpack
+    block_proxy[thisIndex].comm_rev_all(CkCallbackResumeThread());
   }
 
   Kokkos::Profiling::popRegion();
