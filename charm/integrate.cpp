@@ -89,7 +89,9 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
     int next_sort = sort_every>0?sort_every:ntimes+1;
 
+    double total_time = 0;
     for(n = 0; n < ntimes; n++) {
+      double iter_start_time = CkWallTimer();
       if (index == 0 && (n == 0 || n % 10 == 0)) {
         CkPrintf("[Block] Starting iteration %d\n", n);
       }
@@ -193,5 +195,21 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       // TODO: Support this, might require additional synchronization
       //if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, comm);
+
+      /*
+      if (index == 0) {
+        CkPrintf("[Block] Iteration %d time: %.6lf\n", n, CkWallTimer() - iter_start_time);
+      }
+      */
+
+      // Don't include first iteration time
+      if (n > 0) {
+        total_time += CkWallTimer() - iter_start_time;
+      }
+    }
+
+    if (index == 0) {
+      CkPrintf("[Block] Total time (exclude 1st iteration): %.6lf s\n", total_time);
+      CkPrintf("[Block] Average time per iteration: %.6lf s\n", total_time / (ntimes-1));
     }
 }

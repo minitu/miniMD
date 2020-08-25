@@ -126,10 +126,7 @@ module block {
 
       serial "integrate" {
         // Main iteration loop
-        double start_time = CkWallTimer();
         integrate.run(atom, force, neighbor, comm, thermo, thisIndex);
-        double total_time = CkWallTimer() - start_time;
-        if (thisIndex == 0) CkPrintf("# Total time: %.6lf s\n", total_time);
       }
 
       serial "postprocess" {
