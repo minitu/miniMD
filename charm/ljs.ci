@@ -110,7 +110,7 @@ module block {
         comm->exchange(atom, true);
         if (sort > 0)
           atom.sort(neighbor);
-        //comm->borders(atom, true);
+        comm->borders(atom, true);
 
         /*
         force->evflag = 1;
@@ -209,19 +209,33 @@ module block {
     entry void exchange_2_recv_1(int ref, char data[size], size_t size);
     entry void exchange_2_recv_2(int ref, char data[size], size_t size);
 
-    // Non-blocking communication routines for Comm:borders, Comm::communicate
-    entry void comm_nb(int iswap, CkCallback cb) {
+    // Non-blocking communication routines for Comm:borders
+    entry void borders_1(int iswap, CkCallback cb) {
       serial {
-        thisProxy[comm->send1_chare].comm_recv(comm->iter, (char*)comm->send1, comm->send1_size);
+        int tag = comm->maxswap_static*comm->iter + iswap;
+        thisProxy[comm->send1_chare].borders_recv_1(tag, (char*)comm->send1, comm->send1_size);
       }
 
-      when comm_recv[comm->iter](int ref, char data[size], size_t size) serial {
+      when borders_recv_1[comm->maxswap_static*comm->iter+iswap](int ref, char data[size], size_t size) serial {
         memcpy(comm->recv1, data, size);
         cb.send();
       }
     }
 
-    entry void comm_recv(int ref, char data[size], size_t size);
+    entry void borders_2(int iswap, CkCallback cb) {
+      serial {
+        int tag = comm->maxswap_static*comm->iter + iswap;
+        thisProxy[comm->send1_chare].borders_recv_2(tag, (char*)comm->send1, comm->send1_size);
+      }
+
+      when borders_recv_2[comm->maxswap_static*comm->iter+iswap](int ref, char data[size], size_t size) serial {
+        memcpy(comm->recv1, data, size);
+        cb.send();
+      }
+    }
+
+    entry void borders_recv_1(int ref, char data[size], size_t size);
+    entry void borders_recv_2(int ref, char data[size], size_t size);
   };
 
   // Bound array to Block

@@ -181,6 +181,7 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   /* alloc comm memory */
 
   int maxswap = 2 * (need[0] + need[1] + need[2]);
+  maxswap_static = maxswap;
 
   slablo = float_1d_host_view_type("Comm::slablo",maxswap);
   slabhi = float_1d_host_view_type("Comm::slabhi",maxswap);
@@ -338,7 +339,7 @@ void Comm::communicate(Atom &atom, bool preprocess)
       send1_size = comm_send_size[iswap] * sizeof(MMD_float);
       send1_chare = sendchare[iswap];
       recv1 = h_buf_recv.data();
-      block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
+      //block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
 
       // Move received data to device
       Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
@@ -420,7 +421,7 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
       send1_size = reverse_send_size[iswap] * sizeof(MMD_float);
       send1_chare = recvchare[iswap];
       recv1 = h_buf_recv.data();
-      block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
+      //block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
 
       // Move received data to device
       Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
@@ -826,7 +827,7 @@ void Comm::borders(Atom &atom_, bool preprocess)
           send1_size = sizeof(int);
           send1_chare = sendchare[iswap];
           recv1 = static_cast<void*>(&nrecv);
-          block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
+          block_proxy[thisIndex].borders_1(iswap, CkCallbackResumeThread());
 
           if(nrecv * atom.border_size > maxrecv) {
             CmiEnforce(preprocess);
@@ -846,7 +847,7 @@ void Comm::borders(Atom &atom_, bool preprocess)
           send1_size = nsend * atom.border_size * sizeof(MMD_float);
           send1_chare = sendchare[iswap];
           recv1 = h_buf_recv.data();
-          block_proxy[thisIndex].comm_nb(iswap, CkCallbackResumeThread());
+          block_proxy[thisIndex].borders_2(iswap, CkCallbackResumeThread());
 
           // Move received data to device
           Kokkos::deep_copy(buf_recv, h_buf_recv);
