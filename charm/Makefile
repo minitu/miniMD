@@ -34,3 +34,6 @@ test: test.ci
 
 clean:
 	rm -f $(TARGET) *.decl.h *.def.h *.o charmrun
+
+clean-nsys:
+	rm -f *.qdrep *.qdstrm *.sqlite
