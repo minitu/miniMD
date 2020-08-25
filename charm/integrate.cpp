@@ -104,13 +104,10 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       nlocal = atom.nlocal;
 
       initialIntegrate();
-#ifdef CUDA_SYNC
-      compute_instance.fence();
-#else
+
       // Ensure compute -> comm dependency
       hapiCheck(cudaEventRecord(compute_event, compute_instance.cuda_stream()));
       hapiCheck(cudaStreamWaitEvent(comm_instance.cuda_stream(), compute_event, 0));
-#endif
 
       if((n + 1) % neighbor.every) {
 
@@ -171,21 +168,21 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
         */
       }
 
+      // Ensure comm -> compute dependency
+      hapiCheck(cudaEventRecord(comm_event, comm_instance.cuda_stream()));
+      hapiCheck(cudaStreamWaitEvent(compute_instance.cuda_stream(), comm_event, 0));
+
       Kokkos::Profiling::pushRegion("force");
       force->evflag = (n + 1) % thermo.nstat == 0;
       force->compute(atom, neighbor, comm, comm->index);
-#ifdef CUDA_SYNC
-      compute_instance.fence();
-#endif
       Kokkos::Profiling::popRegion();
 
 
       if(neighbor.halfneigh && neighbor.ghost_newton) {
-#if !defined CUDA_SYNC
         // Ensure compute -> comm dependency
         hapiCheck(cudaEventRecord(compute_event, compute_instance.cuda_stream()));
         hapiCheck(cudaStreamWaitEvent(comm_instance.cuda_stream(), compute_event, 0));
-#endif
+
         comm->reverse_communicate(atom, false);
       }
 
