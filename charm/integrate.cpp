@@ -177,8 +177,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       force->compute(atom, neighbor, comm, comm->index);
       Kokkos::Profiling::popRegion();
 
-
-      if(neighbor.halfneigh && neighbor.ghost_newton) {
+      if (neighbor.halfneigh && neighbor.ghost_newton) {
         // Ensure compute -> comm dependency
         hapiCheck(cudaEventRecord(compute_event, compute_instance.cuda_stream()));
         hapiCheck(cudaStreamWaitEvent(comm_instance.cuda_stream(), compute_event, 0));

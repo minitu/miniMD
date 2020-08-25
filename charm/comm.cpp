@@ -200,8 +200,6 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   firstrecv = int_1d_host_view_type("Comm::firstrecv",maxswap);
   maxsendlist = int_1d_host_view_type("Comm::maxsendlist",maxswap);
 
-  int iswap = 0;
-
   for(i = 0; i < maxswap; i++) maxsendlist[i] = BUFMIN;
 
   sendlist = int_2d_lr_view_type("Comm::sendlist",maxswap,BUFMIN);
@@ -296,74 +294,101 @@ void Comm::communicate(Atom &atom, bool preprocess)
   // Create host mirrors for integrate loop
   if (!preprocess && !h_buf_alloc) {
     h_buf_alloc = true;
-    h_buf_send = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_send);
-    h_buf_recv = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_recv);
+    buf_comms_send = new float_1d_view_type[nswap];
+    buf_comms_recv = new float_1d_view_type[nswap];
+    h_buf_comms_send = new float_1d_host_view_type[nswap];
+    h_buf_comms_recv = new float_1d_host_view_type[nswap];
+    for (int i = 0; i < nswap; i++) {
+      buf_comms_send[i] = float_1d_view_type("Comm::buf_comms_send", maxsend + BUFEXTRA);
+      buf_comms_recv[i] = float_1d_view_type("Comm::buf_comms_recv", maxrecv);
+      h_buf_comms_send[i] = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_comms_send[i]);
+      h_buf_comms_recv[i] = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), buf_comms_recv[i]);
+    }
   }
 
   int iswap;
   int pbc_flags[4];
 
-  for(iswap = 0; iswap < nswap; iswap++) {
+  if (preprocess) {
+    // Send and recv one buffer at a time
+    for(iswap = 0; iswap < nswap; iswap++) {
+      pbc_flags[0] = pbc_any[iswap];
+      pbc_flags[1] = pbc_flagx[iswap];
+      pbc_flags[2] = pbc_flagy[iswap];
+      pbc_flags[3] = pbc_flagz[iswap];
 
-    /* pack buffer */
+      int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
 
-    pbc_flags[0] = pbc_any[iswap];
-    pbc_flags[1] = pbc_flagx[iswap];
-    pbc_flags[2] = pbc_flagy[iswap];
-    pbc_flags[3] = pbc_flagz[iswap];
+      // Pack buffer
+      if (sendchare[iswap] != index) {
+        atom.pack_comm(sendnum[iswap], list, buf_send, pbc_flags);
 
-    int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
-    if(sendchare[iswap] != index) {
-      atom.pack_comm(sendnum[iswap], list, buf_send, pbc_flags);
-    /* exchange with another proc
-       if self, set recv buffer to send buffer */
+        // Exchange with another proc
+        // If self, set recv buffer to send buffer
 
-      // Move data on device to host for communication
-      if (preprocess) {
+        // Move data on device to host for communication
         Kokkos::fence();
         h_buf_send = Kokkos::create_mirror_view(buf_send);
         h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+        Kokkos::deep_copy(comm_instance, h_buf_send, buf_send);
+
+#ifdef CUDA_SYNC
+        comm_instance.fence();
+#else
+        suspend(comm_instance);
+#endif
+
+        // Send and suspend
+        send1 = h_buf_send.data();
+        send1_size = comm_send_size[iswap] * sizeof(MMD_float);
+        send1_chare = sendchare[iswap];
+        recv1 = h_buf_recv.data();
+        block_proxy[thisIndex].comms(iswap, CkCallbackResumeThread());
+
+        // Move received data to device
+        Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
+
+        // Unpack received data
+        buf = buf_recv;
+        atom.unpack_comm(recvnum[iswap], firstrecv[iswap], buf);
+
+#ifdef CUDA_SYNC
+        comm_instance.fence();
+#else
+        suspend(comm_instance);
+#endif
       } else {
-        CmiEnforce(h_buf_alloc);
+        // No need to synchronize for self packing
+        atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
       }
-      Kokkos::deep_copy(comm_instance, h_buf_send, buf_send);
-
-#ifdef CUDA_SYNC
-      comm_instance.fence();
-#else
-      suspend(comm_instance);
-#endif
-
-      // Send and suspend
-      send1 = h_buf_send.data();
-      send1_size = comm_send_size[iswap] * sizeof(MMD_float);
-      send1_chare = sendchare[iswap];
-      recv1 = h_buf_recv.data();
-      block_proxy[thisIndex].comms(iswap, CkCallbackResumeThread());
-
-      // Move received data to device
-      Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
-
-      /*
-      MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
-      MPI_Sendrecv(buf_send.data(), comm_send_size[iswap], type, sendchare[iswap], 0,
-                   buf_recv.data(), comm_recv_size[iswap], type, recvchare[iswap], 0,
-                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                   */
-
-      // Unpack received data
-      buf = buf_recv;
-      atom.unpack_comm(recvnum[iswap], firstrecv[iswap], buf);
-
-#ifdef CUDA_SYNC
-      comm_instance.fence();
-#else
-      suspend(comm_instance);
-#endif
-    } else {
-      // No need to synchronize for self packing
-      atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
     }
+  } else {
+    // Pack and move buffers to host
+    for (iswap = 0; iswap < nswap; iswap++) {
+      pbc_flags[0] = pbc_any[iswap];
+      pbc_flags[1] = pbc_flagx[iswap];
+      pbc_flags[2] = pbc_flagy[iswap];
+      pbc_flags[3] = pbc_flagz[iswap];
+
+      int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
+
+      if (sendchare[iswap] != index) {
+        atom.pack_comm(sendnum[iswap], list, buf_comms_send[iswap], pbc_flags);
+        Kokkos::deep_copy(comm_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
+      } else {
+        atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
+      }
+    }
+
+#ifdef CUDA_SYNC
+    comm_instance.fence();
+#else
+    suspend(comm_instance);
+#endif
+
+    // All buffers copied to host, send to neighbors
+    // After receiving, move buffers to device and unpack
+    block_proxy[thisIndex].comms_all(CkCallbackResumeThread());
   }
 
   Kokkos::Profiling::popRegion();
@@ -947,7 +972,7 @@ void Comm::growsend(int n)
 void Comm::growrecv(int n)
 {
   maxrecv = static_cast<int>(BUFFACTOR * n) + BUFEXTRA;
-  buf_recv = float_1d_view_type("Comm::buf_send",maxrecv);;
+  buf_recv = float_1d_view_type("Comm::buf_recv",maxrecv);;
 }
 
 /* realloc the size of the iswap sendlist as needed with BUFFACTOR */

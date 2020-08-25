@@ -249,6 +249,35 @@ module block {
     }
 
     entry void comms_recv(int ref, char data[size], size_t size);
+
+    entry void comms_all(CkCallback cb) {
+      serial {
+        my_iswap = comm->iswap;
+        my_nswap = comm->nswap;
+        for (my_iswap = 0; my_iswap < my_nswap; my_iswap++) {
+          int tag = my_nswap*comm->iter + my_iswap;
+          if (comm->sendchare[my_iswap] != comm->index) {
+            thisProxy[comm->sendchare[my_iswap]].comms_all_recv(tag,
+                (char*)comm->h_buf_comms_send[my_iswap].data(),
+                comm->comm_send_size[my_iswap] * sizeof(MMD_float));
+          }
+        }
+      }
+
+      forall [my_iswap] (0:my_nswap-1,1) {
+        if (comm->sendchare[my_iswap] != comm->index) {
+          when comms_all_recv[my_nswap*comm->iter+my_iswap](int ref, char data[size], size_t size) serial {
+            memcpy(comm->h_buf_comms_recv[my_iswap].data(), data, size);
+            Kokkos::deep_copy(comm->comm_instance, comm->buf_comms_recv[my_iswap], comm->h_buf_comms_recv[my_iswap]);
+            comm->atom.unpack_comm(comm->recvnum[my_iswap], comm->firstrecv[my_iswap], comm->buf_comms_recv[my_iswap]);
+          }
+        }
+      }
+
+      serial { cb.send(); }
+    }
+
+    entry void comms_all_recv(int ref, char data[size], size_t size);
   };
 
   // Bound array to Block

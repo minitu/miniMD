@@ -33,6 +33,10 @@ public:
   Kokkos::Cuda compute_instance;
   Kokkos::Cuda comm_instance;
 
+  // For comms_all
+  int my_iswap;
+  int my_nswap;
+
   double vtot[3];
 
 public:
