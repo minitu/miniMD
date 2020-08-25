@@ -267,7 +267,7 @@ module block {
           when comm_all_recv[my_nswap*comm->iter+my_iswap](int ref, char data[size], size_t size) serial {
             memcpy(comm->h_buf_comms_recv[my_iswap].data(), data, size);
             Kokkos::deep_copy(comm->comm_instance, comm->buf_comms_recv[my_iswap], comm->h_buf_comms_recv[my_iswap]);
-            comm->atom.unpack_comm(comm->recvnum[my_iswap], comm->firstrecv[my_iswap], comm->buf_comms_recv[my_iswap]);
+            comm->atom_p->unpack_comm(comm->recvnum[my_iswap], comm->firstrecv[my_iswap], comm->buf_comms_recv[my_iswap]);
           }
         }
       }
@@ -298,7 +298,7 @@ module block {
             memcpy(comm->h_buf_comms_recv[my_iswap].data(), data, size);
             Kokkos::deep_copy(comm->comm_instance, comm->buf_comms_recv[my_iswap], comm->h_buf_comms_recv[my_iswap]);
             int_1d_view_type list = Kokkos::subview(comm->sendlist,my_iswap,Kokkos::ALL());
-            comm->atom.unpack_reverse(comm->sendnum[my_iswap], list, comm->buf_comms_recv[my_iswap]);
+            comm->atom_p->unpack_reverse(comm->sendnum[my_iswap], list, comm->buf_comms_recv[my_iswap]);
           }
         }
       }

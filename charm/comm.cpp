@@ -394,6 +394,8 @@ void Comm::communicate(Atom &atom, bool preprocess)
 
       // All buffers copied to host, send to neighbors
       // After receiving, move buffers to device and unpack
+      // XXX: Atom needs to be updated, otherwise packing will use default stream
+      atom_p = &atom;
       block_proxy[thisIndex].comm_all(CkCallbackResumeThread());
     }
   }
@@ -501,6 +503,7 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
 
     // All buffers copied to host, send to neighbors
     // After receiving, move buffers to device and unpack
+    atom_p = &atom;
     block_proxy[thisIndex].comm_rev_all(CkCallbackResumeThread());
   }
 

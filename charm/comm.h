@@ -152,6 +152,7 @@ class Comm : public CBase_Comm
 
   public:
     Atom atom;
+    Atom* atom_p;
     int idim,n,iswap;
     MMD_float lo, hi, value;
     x_view_type x;
