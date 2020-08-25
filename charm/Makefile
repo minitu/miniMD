@@ -37,3 +37,6 @@ clean:
 
 clean-nsys:
 	rm -f *.qdrep *.qdstrm *.sqlite
+
+clean-nvprof:
+	rm -f *.nvvp
