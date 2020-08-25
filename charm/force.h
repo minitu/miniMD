@@ -53,6 +53,7 @@ class Force
     MMD_int evflag;
     MMD_float virial;
     int ntypes;
+    int index;
 
     Force() {};
     virtual ~Force() {};

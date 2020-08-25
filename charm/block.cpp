@@ -103,6 +103,10 @@ void Block::init() {
   force->compute_event = compute_event;
   force->comm_event = comm_event;
 
+  // Store chare index
+  integrate.index = thisIndex;
+  force->index = thisIndex;
+
   if (in_forcetype == FORCELJ) {
     float_1d_view_type d_epsilon("ForceLJ::epsilon", ntypes*ntypes);
     float_1d_host_view_type h_epsilon = Kokkos::create_mirror_view(d_epsilon);

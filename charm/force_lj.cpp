@@ -101,7 +101,9 @@ void ForceLJ::setup()
 
 void ForceLJ::compute(Atom &atom, Neighbor &neighbor, Comm* comm, int me)
 {
-  NVTXTracer("ForceLJ::compute", NVTXColor::GreenSea);
+  std::ostringstream os;
+  os << "ForceLJ::compute " << index;
+  NVTXTracer(os.str(), NVTXColor::GreenSea);
   eng_vdwl = 0;
   virial = 0;
 

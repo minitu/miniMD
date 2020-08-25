@@ -288,7 +288,9 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
 
 void Comm::communicate(Atom &atom, bool preprocess)
 {
-  NVTXTracer("Comm::communicate", NVTXColor::PeterRiver);
+  std::ostringstream os;
+  os << "Comm::communicate " << index;
+  NVTXTracer(os.str(), NVTXColor::PeterRiver);
   Kokkos::Profiling::pushRegion("Comm::communicate");
 
   // Create host mirrors for integrate loop
@@ -385,10 +387,15 @@ void Comm::communicate(Atom &atom, bool preprocess)
 #else
     suspend(comm_instance);
 #endif
+    {
+      std::ostringstream os_comm_all;
+      os_comm_all << "Comm::comm_all " << index;
+      NVTXTracer(os_comm_all.str(), NVTXColor::PeterRiver);
 
-    // All buffers copied to host, send to neighbors
-    // After receiving, move buffers to device and unpack
-    block_proxy[thisIndex].comm_all(CkCallbackResumeThread());
+      // All buffers copied to host, send to neighbors
+      // After receiving, move buffers to device and unpack
+      block_proxy[thisIndex].comm_all(CkCallbackResumeThread());
+    }
   }
 
   Kokkos::Profiling::popRegion();
@@ -398,7 +405,9 @@ void Comm::communicate(Atom &atom, bool preprocess)
 
 void Comm::reverse_communicate(Atom &atom, bool preprocess)
 {
-  NVTXTracer("Comm::reverse_communicate", NVTXColor::PeterRiver);
+  std::ostringstream os;
+  os << "Comm::reverse_communicate " << index;
+  NVTXTracer(os.str(), NVTXColor::PeterRiver);
   Kokkos::Profiling::pushRegion("Comm::reverse_communicate");
 
   // Create host mirrors for integrate loop
