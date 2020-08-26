@@ -377,10 +377,10 @@ void Comm::communicate(Atom &atom, bool preprocess)
       int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
 
       if (sendchare[iswap] != index) {
-        //atom.pack_comm(sendnum[iswap], list, buf_comms_send[iswap], pbc_flags);
-        //Kokkos::deep_copy(comm_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
+        atom.pack_comm(sendnum[iswap], list, buf_comms_send[iswap], pbc_flags);
+        Kokkos::deep_copy(comm_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
       } else {
-        //atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
+        atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
       }
     }
 

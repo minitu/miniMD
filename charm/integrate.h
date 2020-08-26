@@ -42,7 +42,8 @@ class Integrate
 {
   public:
 
-    struct TagInitialIntegrate {};
+    struct TagInitialIntegrate1 {};
+    struct TagInitialIntegrate2 {};
     struct TagFinalIntegrate {};
 
     Kokkos::Cuda compute_instance;
@@ -53,10 +54,6 @@ class Integrate
 
     MMD_float dt;
     MMD_float dtforce;
-    float_1d_view_type d_dt;
-    float_1d_view_type d_dtforce;
-    float_1d_host_view_type h_dt;
-    float_1d_host_view_type h_dtforce;
     MMD_int ntimes;
     MMD_int nlocal, nmax;
     x_view_type x, v, f, xold;
@@ -72,7 +69,9 @@ class Integrate
     void setup();
     void initialIntegrate();
     KOKKOS_INLINE_FUNCTION
-    void operator() (TagInitialIntegrate, const int& i) const;
+    void operator() (TagInitialIntegrate1, const int& i) const;
+    KOKKOS_INLINE_FUNCTION
+    void operator() (TagInitialIntegrate2, const int& i) const;
     void finalIntegrate();
     KOKKOS_INLINE_FUNCTION
     void operator() (TagFinalIntegrate, const int& i) const;
