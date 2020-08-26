@@ -387,17 +387,12 @@ void Comm::communicate(Atom &atom, bool preprocess)
 #else
     suspend(comm_instance);
 #endif
-    {
-      std::ostringstream os_comm_all;
-      os_comm_all << "Comm::comm_all " << index;
-      NVTXTracer(os_comm_all.str(), NVTXColor::PeterRiver);
 
-      // All buffers copied to host, send to neighbors
-      // After receiving, move buffers to device and unpack
-      // XXX: Atom needs to be updated, otherwise packing will use default stream
-      atom_p = &atom;
-      block_proxy[thisIndex].comm_all(CkCallbackResumeThread());
-    }
+    // All buffers copied to host, send to neighbors
+    // After receiving, move buffers to device and unpack
+    // XXX: Atom needs to be updated, otherwise packing will use default stream
+    atom_p = &atom;
+    block_proxy[thisIndex].comm_all(CkCallbackResumeThread());
   }
 
   Kokkos::Profiling::popRegion();
