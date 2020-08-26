@@ -42,8 +42,7 @@ class Integrate
 {
   public:
 
-    struct TagInitialIntegrate1 {};
-    struct TagInitialIntegrate2 {};
+    struct TagInitialIntegrate {};
     struct TagFinalIntegrate {};
 
     Kokkos::Cuda compute_instance;
@@ -72,9 +71,7 @@ class Integrate
     void setup();
     void initialIntegrate();
     KOKKOS_INLINE_FUNCTION
-    void operator() (TagInitialIntegrate1, const int& i) const;
-    KOKKOS_INLINE_FUNCTION
-    void operator() (TagInitialIntegrate2, const int& i) const;
+    void operator() (TagInitialIntegrate, const int& i) const;
     void finalIntegrate();
     KOKKOS_INLINE_FUNCTION
     void operator() (TagFinalIntegrate, const int& i) const;

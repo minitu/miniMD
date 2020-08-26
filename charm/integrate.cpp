@@ -52,23 +52,16 @@ void Integrate::initialIntegrate()
   NVTXTracer(os.str(), NVTXColor::Turquoise);
   // Should be invoked as separate kernels because of the dependency on v
   Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagInitialIntegrate1>(compute_instance,0,nlocal),
-        Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
-  Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagInitialIntegrate2>(compute_instance,0,nlocal),
+        Kokkos::RangePolicy<TagInitialIntegrate>(compute_instance,0,nlocal),
         Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
 KOKKOS_INLINE_FUNCTION
-void Integrate::operator() (TagInitialIntegrate1, const int& i) const {
+void Integrate::operator() (TagInitialIntegrate, const int& i) const {
   v(i,0) += dtforce * f(i,0);
   v(i,1) += dtforce * f(i,1);
   v(i,2) += dtforce * f(i,2);
-}
-
-KOKKOS_INLINE_FUNCTION
-void Integrate::operator() (TagInitialIntegrate2, const int& i) const {
-  // TODO: Fix implicit fence issue due to dependency on v
+  // TODO: Fix performance degradation due to v
   /*
   x(i,0) += dt * v(i,0);
   x(i,1) += dt * v(i,1);
