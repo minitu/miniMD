@@ -5,6 +5,7 @@
 #include "force_lj.h"
 
 /* readonly */ extern CProxy_Main main_proxy;
+/* readonly */ extern CProxy_KokkosManager kokkos_proxy;
 /* readonly */ extern CProxy_Block block_proxy;
 /* readonly */ extern CProxy_Comm comm_proxy;
 /* readonly */ extern int num_chares;
@@ -67,25 +68,11 @@ void Block::init() {
     force = (Force*) new ForceLJ(ntypes);
   }
 
-  // Create CUDA streams (higher priority for communication stream)
-  cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
-  cudaStreamCreateWithPriority(&comm_stream, cudaStreamDefault, -1);
-  int least, greatest;
-  int compute_prio, comm_prio;
-  cudaDeviceGetStreamPriorityRange(&least, &greatest);
-  cudaStreamGetPriority(compute_stream, &compute_prio);
-  cudaStreamGetPriority(comm_stream, &comm_prio);
-  if (thisIndex == 0) {
-    CkPrintf("# CUDA stream priorities\n");
-    CkPrintf("least: %d, greatest: %d\n", least, greatest);
-    CkPrintf("compute: %d, comm: %d\n", compute_prio, comm_prio);
-  }
-
-  // Create separate execution instances with CUDA streams
-  compute_instance = Kokkos::Cuda(compute_stream);
-  comm_instance = Kokkos::Cuda(comm_stream);
-  atom.compute_instance = compute_instance;
-  atom.comm_instance = comm_instance;
+  // Store CUDA execution instances
+  kokkos_manager = kokkos_proxy.ckLocalBranch();
+  // TODO
+  //atom.compute_instance = compute_instance;
+  //atom.comm_instance = comm_instance;
   neighbor.compute_instance = compute_instance;
   neighbor.comm_instance = comm_instance;
   integrate.compute_instance = compute_instance;

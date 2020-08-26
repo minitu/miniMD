@@ -256,6 +256,14 @@ public:
 
 class KokkosManager : public CBase_KokkosManager {
 public:
+  cudaStream_t compute_stream;
+  cudaStream_t h2d_stream;
+  cudaStream_t d2h_stream;
+
+  Kokkos::Cuda compute_instance;
+  Kokkos::Cuda h2d_instance;
+  Kokkos::Cuda d2h_instance;
+
   KokkosManager() {
     // Initialize Kokkos
     Kokkos::InitArguments args_kokkos;
@@ -264,10 +272,25 @@ public:
     args_kokkos.device_id = 0;
     Kokkos::initialize(args_kokkos);
 
+    // Create per-GPU streams (only works with 1 process per GPU)
+    cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
+    cudaStreamCreateWithPriority(&h2d_stream, cudaStreamDefault, -1);
+    cudaStreamCreateWithPriority(&d2h_stream, cudaStreamDefault, -1);
+
+    // Create CUDA execution instances using streams
+    compute_instance = Kokkos::Cuda(compute_stream);
+    h2d_instance = Kokkos::Cuda(h2d_stream);
+    d2h_instance = Kokkos::Cuda(d2h_stream);
+
     contribute(CkCallback(CkReductionTarget(Main, kokkosInitialized), main_proxy));
   }
 
   void finalize() {
+    // Destroy streams
+    cudaStreamDestroy(compute_stream);
+    cudaStreamDestroy(h2d_stream);
+    cudaStreamDestroy(d2h_stream);
+
     // Finalize Kokkos
     Kokkos::finalize();
 

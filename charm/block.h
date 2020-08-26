@@ -17,6 +17,7 @@ class Block : public CBase_Block {
   Block_SDAG_CODE
 
 public:
+  KokkosManager* kokkos_manager;
   Atom atom;
   Neighbor neighbor;
   Integrate integrate;
