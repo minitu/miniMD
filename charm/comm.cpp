@@ -326,21 +326,15 @@ void Comm::communicate(Atom &atom, bool preprocess)
       // Pack buffer
       if (sendchare[iswap] != index) {
         atom.pack_comm(sendnum[iswap], list, buf_send, pbc_flags);
+        Kokkos::fence();
 
         // Exchange with another proc
         // If self, set recv buffer to send buffer
 
         // Move data on device to host for communication
-        Kokkos::fence();
         h_buf_send = Kokkos::create_mirror_view(buf_send);
         h_buf_recv = Kokkos::create_mirror_view(buf_recv);
-        Kokkos::deep_copy(comm_instance, h_buf_send, buf_send);
-
-#ifdef CUDA_SYNC
-        comm_instance.fence();
-#else
-        suspend(comm_instance);
-#endif
+        Kokkos::deep_copy(h_buf_send, buf_send);
 
         // Send and suspend
         send1 = h_buf_send.data();
@@ -350,21 +344,17 @@ void Comm::communicate(Atom &atom, bool preprocess)
         block_proxy[thisIndex].comms(iswap, CkCallbackResumeThread());
 
         // Move received data to device
-        Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
+        Kokkos::deep_copy(buf_recv, h_buf_recv);
 
         // Unpack received data
         buf = buf_recv;
         atom.unpack_comm(recvnum[iswap], firstrecv[iswap], buf);
-
-#ifdef CUDA_SYNC
-        comm_instance.fence();
-#else
-        suspend(comm_instance);
-#endif
       } else {
         // No need to synchronize for self packing
         atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
       }
+
+      Kokkos::fence();
     }
   } else {
     // Pack and move buffers to host
@@ -378,16 +368,16 @@ void Comm::communicate(Atom &atom, bool preprocess)
 
       if (sendchare[iswap] != index) {
         atom.pack_comm(sendnum[iswap], list, buf_comms_send[iswap], pbc_flags);
-        Kokkos::deep_copy(comm_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
+        Kokkos::deep_copy(d2h_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
       } else {
         atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
       }
     }
 
 #ifdef CUDA_SYNC
-    comm_instance.fence();
+    d2h_instance.fence();
 #else
-    suspend(comm_instance);
+    suspend(d2h_instance);
 #endif
 
     // All buffers copied to host, send to neighbors
@@ -444,13 +434,7 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
         // Move data on device to host for communication
         h_buf_send = Kokkos::create_mirror_view(buf_send);
         h_buf_recv = Kokkos::create_mirror_view(buf_recv);
-        Kokkos::deep_copy(comm_instance, h_buf_send, buf_send);
-
-#ifdef CUDA_SYNC
-        comm_instance.fence();
-#else
-        suspend(comm_instance);
-#endif
+        Kokkos::deep_copy(h_buf_send, buf_send);
 
         // Send and suspend
         send1 = h_buf_send.data();
@@ -460,18 +444,14 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
         block_proxy[thisIndex].comms(iswap, CkCallbackResumeThread());
 
         // Move received data to device
-        Kokkos::deep_copy(comm_instance, buf_recv, h_buf_recv);
+        Kokkos::deep_copy(h2d_instance, buf_recv, h_buf_recv);
 
         buf = buf_recv;
       } else buf = buf_send;
 
       // unpack buffer
       atom.unpack_reverse(sendnum[iswap], list, buf);
-#ifdef CUDA_SYNC
-      comm_instance.fence();
-#else
-      suspend(comm_instance);
-#endif
+      Kokkos::fence();
     }
   } else {
     // XXX: Don't need to iterate backwards?
@@ -481,14 +461,14 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
       // Pack and move buffers to host
       atom.pack_reverse(recvnum[iswap], firstrecv[iswap], buf_comms_send[iswap]);
       if (sendchare[iswap] != index) {
-        Kokkos::deep_copy(comm_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
+        Kokkos::deep_copy(d2h_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
       }
     }
 
 #ifdef CUDA_SYNC
-    comm_instance.fence();
+    d2h_instance.fence();
 #else
-    suspend(comm_instance);
+    suspend(d2h_instance);
 #endif
 
     // Unpack self
@@ -580,9 +560,7 @@ void Comm::exchange(Atom &atom_, bool preprocess)
       count.modify<HostType>();
       count.sync<DeviceType>();
 
-      Kokkos::parallel_for(Kokkos::Experimental::require(
-            Kokkos::RangePolicy<TagExchangeSendlist>(comm_instance,0,nlocal),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
+      Kokkos::parallel_for(Kokkos::RangePolicy<TagExchangeSendlist>(0,nlocal), *this);
       Kokkos::fence();
 
       count.modify<DeviceType>();
@@ -621,9 +599,7 @@ void Comm::exchange(Atom &atom_, bool preprocess)
     }
     Kokkos::deep_copy(exc_copylist,h_exc_copylist);
 
-    Kokkos::parallel_for(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagExchangePack>(comm_instance,0,count.h_view(0)),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
+    Kokkos::parallel_for(Kokkos::RangePolicy<TagExchangePack>(0,count.h_view(0)), *this);
 
     atom.nlocal -= count.h_view(0);
     Kokkos::fence();
@@ -702,9 +678,7 @@ void Comm::exchange(Atom &atom_, bool preprocess)
 
     nrecv = 0;
 
-    Kokkos::parallel_reduce(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagExchangeCountRecv>(comm_instance,0,nrecv_atoms),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this, nrecv);
+    Kokkos::parallel_reduce(Kokkos::RangePolicy<TagExchangeCountRecv>(0,nrecv_atoms), *this, nrecv);
 
     nlocal = atom.nlocal;
 
@@ -718,9 +692,7 @@ void Comm::exchange(Atom &atom_, bool preprocess)
     if(atom.nlocal>=atom.nmax)
       atom.growarray();
 
-    Kokkos::parallel_for(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagExchangeUnpack>(comm_instance,0,nrecv_atoms),
-          Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
+    Kokkos::parallel_for(Kokkos::RangePolicy<TagExchangeUnpack>(0,nrecv_atoms), *this);
     Kokkos::fence();
 
   }
@@ -832,12 +804,6 @@ void Comm::borders(Atom &atom_, bool preprocess)
       send_count = count.d_view;
 
       Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderSendlist>(nfirst,nlast),*this);
-      /*
-      Kokkos::parallel_for(Kokkos::Experimental::require(
-            Kokkos::RangePolicy<TagBorderSendlist>(comm_instance,nfirst,nlast),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
-      Kokkos::fence();
-      */
 
       count.modify<DeviceType>();
       count.sync<HostType>();
@@ -854,12 +820,6 @@ void Comm::borders(Atom &atom_, bool preprocess)
         count.sync<DeviceType>();
 
         Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderSendlist>(nfirst,nlast),*this);
-        /*
-        Kokkos::parallel_for(Kokkos::Experimental::require(
-              Kokkos::RangePolicy<TagBorderSendlist>(comm_instance,nfirst,nlast),
-              Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
-        Kokkos::fence();
-        */
 
         count.modify<DeviceType>();
         count.sync<HostType>();
@@ -871,11 +831,6 @@ void Comm::borders(Atom &atom_, bool preprocess)
       }
 
       Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderPack>(0,nsend),*this);
-      /*
-      Kokkos::parallel_for(Kokkos::Experimental::require(
-            Kokkos::RangePolicy<TagBorderPack>(comm_instance,0,nsend),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
-      */
       Kokkos::fence();
       // swap atoms with other proc
       // put incoming ghosts at end of my atom arrays
@@ -927,11 +882,6 @@ void Comm::borders(Atom &atom_, bool preprocess)
       x = atom.x;
 
       Kokkos::parallel_for(Kokkos::RangePolicy<TagBorderUnpack>(0,nrecv),*this);
-      /*
-      Kokkos::parallel_for(Kokkos::Experimental::require(
-            Kokkos::RangePolicy<TagBorderUnpack>(comm_instance,0,nrecv),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
-            */
       Kokkos::fence();
 
       // set all pointers & counters

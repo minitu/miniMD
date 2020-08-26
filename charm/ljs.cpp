@@ -3,6 +3,7 @@
 #include "hapi.h"
 
 #include "ljs_kokkos.h"
+#include "ljs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -254,48 +255,41 @@ public:
   }
 };
 
-class KokkosManager : public CBase_KokkosManager {
-public:
-  cudaStream_t compute_stream;
-  cudaStream_t h2d_stream;
-  cudaStream_t d2h_stream;
+KokkosManager::KokkosManager() {
+  // Initialize Kokkos
+  Kokkos::InitArguments args_kokkos;
+  args_kokkos.num_threads = num_threads;
+  args_kokkos.num_numa = teams;
+  args_kokkos.device_id = 0;
+  Kokkos::initialize(args_kokkos);
 
-  Kokkos::Cuda compute_instance;
-  Kokkos::Cuda h2d_instance;
-  Kokkos::Cuda d2h_instance;
+  // Create per-GPU streams (only works with 1 process per GPU)
+  cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
+  cudaStreamCreateWithPriority(&h2d_stream, cudaStreamDefault, -1);
+  cudaStreamCreateWithPriority(&d2h_stream, cudaStreamDefault, -1);
 
-  KokkosManager() {
-    // Initialize Kokkos
-    Kokkos::InitArguments args_kokkos;
-    args_kokkos.num_threads = num_threads;
-    args_kokkos.num_numa = teams;
-    args_kokkos.device_id = 0;
-    Kokkos::initialize(args_kokkos);
+  // Create CUDA execution instances using streams
+  instances = new InstanceHolder;
+  instances->compute_instance = Kokkos::Cuda(compute_stream);
+  instances->h2d_instance = Kokkos::Cuda(h2d_stream);
+  instances->d2h_instance = Kokkos::Cuda(d2h_stream);
 
-    // Create per-GPU streams (only works with 1 process per GPU)
-    cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
-    cudaStreamCreateWithPriority(&h2d_stream, cudaStreamDefault, -1);
-    cudaStreamCreateWithPriority(&d2h_stream, cudaStreamDefault, -1);
+  contribute(CkCallback(CkReductionTarget(Main, kokkosInitialized), main_proxy));
+}
 
-    // Create CUDA execution instances using streams
-    compute_instance = Kokkos::Cuda(compute_stream);
-    h2d_instance = Kokkos::Cuda(h2d_stream);
-    d2h_instance = Kokkos::Cuda(d2h_stream);
+void KokkosManager::finalize() {
+  // Destroy instance holder
+  delete instances;
 
-    contribute(CkCallback(CkReductionTarget(Main, kokkosInitialized), main_proxy));
-  }
+  // Destroy streams
+  cudaStreamDestroy(compute_stream);
+  cudaStreamDestroy(h2d_stream);
+  cudaStreamDestroy(d2h_stream);
 
-  void finalize() {
-    // Destroy streams
-    cudaStreamDestroy(compute_stream);
-    cudaStreamDestroy(h2d_stream);
-    cudaStreamDestroy(d2h_stream);
+  // Finalize Kokkos
+  Kokkos::finalize();
 
-    // Finalize Kokkos
-    Kokkos::finalize();
-
-    contribute(CkCallback(CkReductionTarget(Main, kokkosFinalized), main_proxy));
-  }
-};
+  contribute(CkCallback(CkReductionTarget(Main, kokkosFinalized), main_proxy));
+}
 
 #include "miniMD.def.h"

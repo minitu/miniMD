@@ -317,8 +317,7 @@ void create_box(Atom &atom, int nx, int ny, int nz, double rho)
 
 /* initialize atoms on fcc lattice in parallel fashion */
 
-int create_atoms(Atom &atom, int nx, int ny, int nz, double rho,
-    Kokkos::Cuda comm_instance)
+int create_atoms(Atom &atom, int nx, int ny, int nz, double rho)
 {
   /* total # of atoms */
 
@@ -440,8 +439,7 @@ int create_atoms(Atom &atom, int nx, int ny, int nz, double rho,
 
 /* adjust initial velocities to give desired temperature */
 
-void create_velocity_1(Atom &atom, double& vxtot, double& vytot, double& vztot,
-    Kokkos::Cuda comm_instance)
+void create_velocity_1(Atom &atom, double& vxtot, double& vytot, double& vztot)
 {
   /* zero center-of-mass motion */
   Kokkos::deep_copy(atom.h_v,atom.v);
@@ -457,7 +455,7 @@ void create_velocity_1(Atom &atom, double& vxtot, double& vytot, double& vztot,
 }
 
 void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
-    double vxtot, double vytot, double vztot, Kokkos::Cuda comm_instance)
+    double vxtot, double vytot, double vztot)
 {
   //MPI_Allreduce(&vxtot, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   vxtot /= atom.natoms;

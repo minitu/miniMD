@@ -54,7 +54,8 @@ class Thermo
     MMD_float* prsarr;
 
     Kokkos::Cuda compute_instance;
-    Kokkos::Cuda comm_instance;
+    Kokkos::Cuda h2d_instance;
+    Kokkos::Cuda d2h_instance;
 
     cudaEvent_t compute_event;
     cudaEvent_t comm_event;

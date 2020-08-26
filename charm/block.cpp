@@ -1,4 +1,5 @@
 #include "miniMD.decl.h"
+#include "ljs.h"
 #include "block.decl.h"
 #include "block.h"
 #include "force_eam.h"
@@ -47,12 +48,11 @@
 /* readonly */ extern int in_thermo_nstat;
 
 extern void create_box(Atom& atom, int nx, int ny, int nz, double rho);
-extern int create_atoms(Atom& atom, int nx, int ny, int nz, double rho,
-    Kokkos::Cuda comm_instance);
+extern int create_atoms(Atom& atom, int nx, int ny, int nz, double rho);
 extern void create_velocity_1(Atom &atom, double& vxtot, double& vytot,
-    double& vztot, Kokkos::Cuda comm_instance);
+    double& vztot);
 extern void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
-    double vxtot, double vytot, double vztot, Kokkos::Cuda comm_instance);
+    double vxtot, double vytot, double vztot);
 
 Block::Block() : atom(ntypes), neighbor(ntypes), integrate(), thermo(),
   comm(nullptr), force(nullptr) {}
@@ -70,19 +70,27 @@ void Block::init() {
 
   // Store CUDA execution instances
   kokkos_manager = kokkos_proxy.ckLocalBranch();
-  // TODO
-  //atom.compute_instance = compute_instance;
-  //atom.comm_instance = comm_instance;
+  Kokkos::Cuda& compute_instance = kokkos_manager->instances->compute_instance;
+  Kokkos::Cuda& h2d_instance = kokkos_manager->instances->h2d_instance;
+  Kokkos::Cuda& d2h_instance = kokkos_manager->instances->d2h_instance;
+  atom.compute_instance = compute_instance;
+  atom.h2d_instance = h2d_instance;
+  atom.d2h_instance = d2h_instance;
   neighbor.compute_instance = compute_instance;
-  neighbor.comm_instance = comm_instance;
+  neighbor.h2d_instance = h2d_instance;
+  neighbor.d2h_instance = d2h_instance;
   integrate.compute_instance = compute_instance;
-  integrate.comm_instance = comm_instance;
+  integrate.h2d_instance = h2d_instance;
+  integrate.d2h_instance = d2h_instance;
   thermo.compute_instance = compute_instance;
-  thermo.comm_instance = comm_instance;
+  thermo.h2d_instance = h2d_instance;
+  thermo.d2h_instance = d2h_instance;
   comm->compute_instance = compute_instance;
-  comm->comm_instance = comm_instance;
+  comm->h2d_instance = h2d_instance;
+  comm->d2h_instance = d2h_instance;
   force->compute_instance = compute_instance;
-  force->comm_instance = comm_instance;
+  force->h2d_instance = h2d_instance;
+  force->d2h_instance = d2h_instance;
 
   // Create CUDA events used to preserve dependencies between streams
   cudaEventCreateWithFlags(&compute_event, cudaEventDisableTiming);
@@ -205,11 +213,11 @@ void Block::init() {
 
      if (in_forcetype == FORCEEAM) atom.mass = force->mass;
 
-     create_atoms(atom, in_nx, in_ny, in_nz, in_rho, comm_instance);
+     create_atoms(atom, in_nx, in_ny, in_nz, in_rho);
 
      thermo.setup(in_rho, integrate, atom, in_units);
 
-     create_velocity_1(atom, vtot[0], vtot[1], vtot[2], comm_instance);
+     create_velocity_1(atom, vtot[0], vtot[1], vtot[2]);
    }
 
    CkCallback cb(CkCallback(CkReductionTarget(Main, reduceVelocity), main_proxy));
@@ -218,8 +226,7 @@ void Block::init() {
 
 void Block::contCreateVelocity(double vxtot, double vytot, double vztot) {
   if (in_datafile.empty()) {
-    create_velocity_2(in_t_request, atom, thermo, vxtot, vytot, vztot,
-        comm_instance);
+    create_velocity_2(in_t_request, atom, thermo, vxtot, vytot, vztot);
   }
 
   printConfig();

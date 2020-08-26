@@ -108,7 +108,7 @@ void Atom::addatom(MMD_float x_in, MMD_float y_in, MMD_float z_in,
 void Atom::pbc()
 {
   Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomPBC>(comm_instance,0,nlocal),
+        Kokkos::RangePolicy<TagAtomPBC>(compute_instance,0,nlocal),
         Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
@@ -119,14 +119,14 @@ void Atom::pack_comm(int n, int_1d_view_type list_in, float_1d_view_type buf_in,
   buf = buf_in;
   for(int i = 0; i < 4; i++) pbc_flags[i] = pbc_flags_in[i];
 
-  //KOKKOS_ASSERT(comm_instance.cuda_stream() != Kokkos::Cuda{}.cuda_stream());
+  //KOKKOS_ASSERT(compute_instance.cuda_stream() != Kokkos::Cuda{}.cuda_stream());
   if(pbc_flags[0] == 0) {
     Kokkos::parallel_for(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagAtomPackCommNoPBC>(comm_instance,0,n),
+          Kokkos::RangePolicy<TagAtomPackCommNoPBC>(compute_instance,0,n),
           Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
   } else {
     Kokkos::parallel_for(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagAtomPackCommPBC>(comm_instance,0,n),
+          Kokkos::RangePolicy<TagAtomPackCommPBC>(compute_instance,0,n),
           Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
   }
 }
@@ -136,9 +136,9 @@ void Atom::unpack_comm(int n, int first_in, float_1d_view_type buf_in)
   unpack_comm_count++;
   first = first_in;
   buf = buf_in;
-  //KOKKOS_ASSERT(comm_instance.cuda_stream() != Kokkos::Cuda{}.cuda_stream());
+  //KOKKOS_ASSERT(compute_instance.cuda_stream() != Kokkos::Cuda{}.cuda_stream());
   Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomUnpackComm>(comm_instance,0,n),
+        Kokkos::RangePolicy<TagAtomUnpackComm>(compute_instance,0,n),
         Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
@@ -166,7 +166,7 @@ void Atom::pack_reverse(int n, int first_in, float_1d_view_type buf_in)
   first = first_in;
   buf = buf_in;
   Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomPackReverse>(comm_instance,0,n),
+        Kokkos::RangePolicy<TagAtomPackReverse>(compute_instance,0,n),
         Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
@@ -176,7 +176,7 @@ void Atom::unpack_reverse(int n, int_1d_view_type list_in, float_1d_view_type bu
   list = list_in;
   buf = buf_in;
   Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomUnpackReverse>(comm_instance,0,n),
+        Kokkos::RangePolicy<TagAtomUnpackReverse>(compute_instance,0,n),
         Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
@@ -218,9 +218,7 @@ void Atom::sort(Neighbor &neighbor)
 
   const int mbins = neighbor.mbins;
 
-  Kokkos::parallel_scan(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomSort>(comm_instance,0,mbins),
-        Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
+  Kokkos::parallel_scan(Kokkos::RangePolicy<TagAtomSort>(0,mbins), *this);
 
   if(copy_size<nmax) {
     x_copy = x_view_type("atom::x_copy",nmax);
@@ -236,9 +234,7 @@ void Atom::sort(Neighbor &neighbor)
   old_v = v;
   old_type = type;
 
-  Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomSort>(comm_instance,0,mbins),
-        Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
+  Kokkos::parallel_for(Kokkos::RangePolicy<TagAtomSort>(0,mbins), *this);
   Kokkos::fence();
 
   x_view_type x_tmp = x;

@@ -31,9 +31,6 @@ public:
   cudaEvent_t compute_event;
   cudaEvent_t comm_event;
 
-  Kokkos::Cuda compute_instance;
-  Kokkos::Cuda comm_instance;
-
   // For comms_all
   int my_iswap;
   int my_nswap;
