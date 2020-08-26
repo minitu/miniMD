@@ -288,9 +288,11 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
 
 void Comm::communicate(Atom &atom, bool preprocess)
 {
+  /*
   std::ostringstream os;
   os << "Comm::communicate " << index;
   NVTXTracer(os.str(), NVTXColor::PeterRiver);
+  */
   Kokkos::Profiling::pushRegion("Comm::communicate");
 
   // Create host mirrors for integrate loop
@@ -402,9 +404,11 @@ void Comm::communicate(Atom &atom, bool preprocess)
 
 void Comm::reverse_communicate(Atom &atom, bool preprocess)
 {
+  /*
   std::ostringstream os;
   os << "Comm::reverse_communicate " << index;
   NVTXTracer(os.str(), NVTXColor::PeterRiver);
+  */
   Kokkos::Profiling::pushRegion("Comm::reverse_communicate");
 
   // Create host mirrors for integrate loop
@@ -514,7 +518,7 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
 
 void Comm::exchange(Atom &atom_, bool preprocess)
 {
-  NVTXTracer("Comm::exchange", NVTXColor::WetAsphalt);
+  //NVTXTracer("Comm::exchange", NVTXColor::WetAsphalt);
   Kokkos::Profiling::pushRegion("exchange");
   atom = atom_;
 
@@ -767,7 +771,7 @@ void Comm::operator() (TagExchangeUnpack, const int& i ) const {
 
 void Comm::borders(Atom &atom_, bool preprocess)
 {
-  NVTXTracer("Comm::borders", NVTXColor::Carrot);
+  //NVTXTracer("Comm::borders", NVTXColor::Carrot);
   Kokkos::Profiling::pushRegion("Comm::borders");
 
   // Create host mirrors for integrate loop
