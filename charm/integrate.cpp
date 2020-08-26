@@ -57,12 +57,22 @@ void Integrate::initialIntegrate()
 
 KOKKOS_INLINE_FUNCTION
 void Integrate::operator() (TagInitialIntegrate, const int& i) const {
+  /*(
   v(i,0) += dtforce * f(i,0);
   v(i,1) += dtforce * f(i,1);
   v(i,2) += dtforce * f(i,2);
   x(i,0) += dt * v(i,0);
   x(i,1) += dt * v(i,1);
   x(i,2) += dt * v(i,2);
+  */
+  /*
+  v(i,0) += d_dtforce(0) * f(i,0);
+  v(i,1) += d_dtforce(0) * f(i,1);
+  v(i,2) += d_dtforce(0) * f(i,2);
+  x(i,0) += d_dt(0) * v(i,0);
+  x(i,1) += d_dt(0) * v(i,1);
+  x(i,2) += d_dt(0) * v(i,2);
+  */
 }
 
 void Integrate::finalIntegrate()
@@ -92,6 +102,22 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
   mass = atom.mass;
   dtforce = dtforce / mass;
 
+  // Explicitly copy over values to device to avoid implicit data transfers
+  d_dt = float_1d_view_type("Integrate::d_dt", 1);
+  d_dtforce = float_1d_view_type("Integrate::d_dtforce", 1);
+  /*
+  h_dt = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), d_dt);
+  h_dtforce = Kokkos::create_mirror_view(Kokkos::CudaHostPinnedSpace(), d_dtforce);
+  h_dt(0) = dt;
+  h_dtforce(0) = dtforce;
+  CkPrintf("h_dt: %lf, h_dtforce: %lf\n", h_dt(0), h_dtforce(0));
+  */
+  /*
+  Kokkos::deep_copy(comm_instance, d_dt, h_dt);
+  Kokkos::deep_copy(comm_instance, d_dtforce, h_dtforce);
+  comm_instance.fence();
+  */
+
     int next_sort = sort_every>0?sort_every:ntimes+1;
 
     double total_time = 0;
@@ -113,8 +139,8 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       initialIntegrate();
 
       // Ensure compute -> comm dependency
-      hapiCheck(cudaEventRecord(compute_event, compute_instance.cuda_stream()));
-      hapiCheck(cudaStreamWaitEvent(comm_instance.cuda_stream(), compute_event, 0));
+      //hapiCheck(cudaEventRecord(compute_event, compute_instance.cuda_stream()));
+      //hapiCheck(cudaStreamWaitEvent(comm_instance.cuda_stream(), compute_event, 0));
 
       if((n + 1) % neighbor.every) {
 
@@ -176,8 +202,8 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       }
 
       // Ensure comm -> compute dependency
-      hapiCheck(cudaEventRecord(comm_event, comm_instance.cuda_stream()));
-      hapiCheck(cudaStreamWaitEvent(compute_instance.cuda_stream(), comm_event, 0));
+      //hapiCheck(cudaEventRecord(comm_event, comm_instance.cuda_stream()));
+      //hapiCheck(cudaStreamWaitEvent(compute_instance.cuda_stream(), comm_event, 0));
 
       Kokkos::Profiling::pushRegion("force");
       force->evflag = (n + 1) % thermo.nstat == 0;
@@ -196,7 +222,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       f = atom.f;
       nlocal = atom.nlocal;
 
-      finalIntegrate();
+      //finalIntegrate();
 
       // TODO: Support this, might require additional synchronization
       //if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, comm);

@@ -53,6 +53,10 @@ class Integrate
 
     MMD_float dt;
     MMD_float dtforce;
+    float_1d_view_type d_dt;
+    float_1d_view_type d_dtforce;
+    float_1d_host_view_type h_dt;
+    float_1d_host_view_type h_dtforce;
     MMD_int ntimes;
     MMD_int nlocal, nmax;
     x_view_type x, v, f, xold;
