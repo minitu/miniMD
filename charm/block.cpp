@@ -70,6 +70,16 @@ void Block::init() {
   // Create CUDA streams (higher priority for communication stream)
   cudaStreamCreateWithPriority(&compute_stream, cudaStreamDefault, 0);
   cudaStreamCreateWithPriority(&comm_stream, cudaStreamDefault, -1);
+  int least, greatest;
+  int compute_prio, comm_prio;
+  cudaDeviceGetStreamPriorityRange(&least, &greatest);
+  cudaStreamGetPriority(compute_stream, &compute_prio);
+  cudaStreamGetPriority(comm_stream, &comm_prio);
+  if (thisIndex == 0) {
+    CkPrintf("# CUDA stream priorities\n");
+    CkPrintf("least: %d, greatest: %d\n", least, greatest);
+    CkPrintf("compute: %d, comm: %d\n", compute_prio, comm_prio);
+  }
 
   // Create separate execution instances with CUDA streams
   compute_instance = Kokkos::Cuda(compute_stream);
