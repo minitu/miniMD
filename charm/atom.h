@@ -61,6 +61,8 @@ class Atom
     Kokkos::Cuda compute_instance;
     Kokkos::Cuda h2d_instance;
     Kokkos::Cuda d2h_instance;
+    Kokkos::Cuda pack_instance;
+    Kokkos::Cuda unpack_instance;
 
     cudaEvent_t compute_event;
     cudaEvent_t comm_event;

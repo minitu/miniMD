@@ -119,14 +119,21 @@ void Atom::pack_comm(int n, int_1d_view_type list_in, float_1d_view_type buf_in,
   buf = buf_in;
   for(int i = 0; i < 4; i++) pbc_flags[i] = pbc_flags_in[i];
 
+  Kokkos::Cuda instance;
+#ifdef PACK_UNPACK_COMPUTE
+  instance = compute_instance;
+#else
+  instance = pack_instance;
+#endif
+
   //KOKKOS_ASSERT(compute_instance.cuda_stream() != Kokkos::Cuda{}.cuda_stream());
   if(pbc_flags[0] == 0) {
     Kokkos::parallel_for(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagAtomPackCommNoPBC>(compute_instance,0,n),
+          Kokkos::RangePolicy<TagAtomPackCommNoPBC>(instance,0,n),
           Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
   } else {
     Kokkos::parallel_for(Kokkos::Experimental::require(
-          Kokkos::RangePolicy<TagAtomPackCommPBC>(compute_instance,0,n),
+          Kokkos::RangePolicy<TagAtomPackCommPBC>(instance,0,n),
           Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
   }
 }
@@ -136,9 +143,17 @@ void Atom::unpack_comm(int n, int first_in, float_1d_view_type buf_in)
   unpack_comm_count++;
   first = first_in;
   buf = buf_in;
-  //KOKKOS_ASSERT(compute_instance.cuda_stream() != Kokkos::Cuda{}.cuda_stream());
+
+  Kokkos::Cuda instance;
+#ifdef PACK_UNPACK_COMPUTE
+  instance = compute_instance;
+#else
+  instance = unpack_instance;
+#endif
+
+  //KOKKOS_ASSERT(instance.cuda_stream() != Kokkos::Cuda{}.cuda_stream());
   Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomUnpackComm>(compute_instance,0,n),
+        Kokkos::RangePolicy<TagAtomUnpackComm>(instance,0,n),
         Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
@@ -165,8 +180,16 @@ void Atom::pack_reverse(int n, int first_in, float_1d_view_type buf_in)
   pack_reverse_count++;
   first = first_in;
   buf = buf_in;
+
+  Kokkos::Cuda instance;
+#ifdef PACK_UNPACK_COMPUTE
+  instance = compute_instance;
+#else
+  instance = pack_instance;
+#endif
+
   Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomPackReverse>(compute_instance,0,n),
+        Kokkos::RangePolicy<TagAtomPackReverse>(instance,0,n),
         Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 
@@ -175,8 +198,16 @@ void Atom::unpack_reverse(int n, int_1d_view_type list_in, float_1d_view_type bu
   unpack_reverse_count++;
   list = list_in;
   buf = buf_in;
+
+  Kokkos::Cuda instance;
+#ifdef PACK_UNPACK_COMPUTE
+  instance = compute_instance;
+#else
+  instance = unpack_instance;
+#endif
+
   Kokkos::parallel_for(Kokkos::Experimental::require(
-        Kokkos::RangePolicy<TagAtomUnpackReverse>(compute_instance,0,n),
+        Kokkos::RangePolicy<TagAtomUnpackReverse>(instance,0,n),
         Kokkos::Experimental::WorkItemProperty::HintLightWeight), *this);
 }
 

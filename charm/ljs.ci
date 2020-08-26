@@ -266,7 +266,25 @@ module block {
         if (comm->sendchare[my_iswap] != comm->index) {
           when comm_all_recv[my_nswap*comm->iter+my_iswap](int ref, char data[size], size_t size) serial {
             memcpy(comm->h_buf_comms_recv[my_iswap].data(), data, size);
+
+            // Invoke H2D transfer
             Kokkos::deep_copy(comm->h2d_instance, comm->buf_comms_recv[my_iswap], comm->h_buf_comms_recv[my_iswap]);
+
+#ifdef PACK_UNPACK_COMPUTE
+            // Enforce h2d -> compute dependency
+            cudaEvent_t dep_event;
+            hapiCheck(cudaEventCreateWithFlags(&dep_event, cudaEventDisableTiming));
+            hapiCheck(cudaEventRecord(dep_event, comm->h2d_instance.cuda_stream()));
+            hapiCheck(cudaStreamWaitEvent(comm->compute_instance.cuda_stream(), dep_event, 0));
+#else
+            // Enforce h2d -> unpack dependency
+            cudaEvent_t dep_event;
+            hapiCheck(cudaEventCreateWithFlags(&dep_event, cudaEventDisableTiming));
+            hapiCheck(cudaEventRecord(dep_event, comm->h2d_instance.cuda_stream()));
+            hapiCheck(cudaStreamWaitEvent(comm->unpack_instance.cuda_stream(), dep_event, 0));
+#endif
+
+            // Invoke unpacking kernel
             comm->atom_p->unpack_comm(comm->recvnum[my_iswap], comm->firstrecv[my_iswap], comm->buf_comms_recv[my_iswap]);
           }
         }

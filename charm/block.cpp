@@ -73,24 +73,44 @@ void Block::init() {
   Kokkos::Cuda& compute_instance = kokkos_manager->instances->compute_instance;
   Kokkos::Cuda& h2d_instance = kokkos_manager->instances->h2d_instance;
   Kokkos::Cuda& d2h_instance = kokkos_manager->instances->d2h_instance;
+  Kokkos::Cuda& pack_instance = kokkos_manager->instances->pack_instance;
+  Kokkos::Cuda& unpack_instance = kokkos_manager->instances->unpack_instance;
+
   atom.compute_instance = compute_instance;
   atom.h2d_instance = h2d_instance;
   atom.d2h_instance = d2h_instance;
+  atom.pack_instance = pack_instance;
+  atom.unpack_instance = unpack_instance;
+
   neighbor.compute_instance = compute_instance;
   neighbor.h2d_instance = h2d_instance;
   neighbor.d2h_instance = d2h_instance;
+  neighbor.pack_instance = pack_instance;
+  neighbor.unpack_instance = unpack_instance;
+
   integrate.compute_instance = compute_instance;
   integrate.h2d_instance = h2d_instance;
   integrate.d2h_instance = d2h_instance;
+  integrate.pack_instance = pack_instance;
+  integrate.unpack_instance = unpack_instance;
+
   thermo.compute_instance = compute_instance;
   thermo.h2d_instance = h2d_instance;
   thermo.d2h_instance = d2h_instance;
+  thermo.pack_instance = pack_instance;
+  thermo.unpack_instance = unpack_instance;
+
   comm->compute_instance = compute_instance;
   comm->h2d_instance = h2d_instance;
   comm->d2h_instance = d2h_instance;
+  comm->pack_instance = pack_instance;
+  comm->unpack_instance = unpack_instance;
+
   force->compute_instance = compute_instance;
   force->h2d_instance = h2d_instance;
   force->d2h_instance = d2h_instance;
+  force->pack_instance = pack_instance;
+  force->unpack_instance = unpack_instance;
 
   // Create CUDA events used to preserve dependencies between streams
   cudaEventCreateWithFlags(&compute_event, cudaEventDisableTiming);

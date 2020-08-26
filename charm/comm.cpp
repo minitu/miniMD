@@ -357,6 +357,14 @@ void Comm::communicate(Atom &atom, bool preprocess)
       Kokkos::fence();
     }
   } else {
+#if !defined PACK_UNPACK_COMPUTE
+    // Enforce compute -> pack dependency
+    cudaEvent_t dep_event_1;
+    hapiCheck(cudaEventCreateWithFlags(&dep_event_1, cudaEventDisableTiming));
+    hapiCheck(cudaEventRecord(dep_event_1, compute_instance.cuda_stream()));
+    hapiCheck(cudaStreamWaitEvent(pack_instance.cuda_stream(), dep_event_1, 0));
+#endif
+
     // Pack and move buffers to host
     for (iswap = 0; iswap < nswap; iswap++) {
       pbc_flags[0] = pbc_any[iswap];
@@ -367,7 +375,24 @@ void Comm::communicate(Atom &atom, bool preprocess)
       int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
 
       if (sendchare[iswap] != index) {
+        // Invoke packing kernel
         atom.pack_comm(sendnum[iswap], list, buf_comms_send[iswap], pbc_flags);
+
+#ifdef PACK_UNPACK_COMPUTE
+        // Enforce compute -> d2h dependency
+        cudaEvent_t dep_event;
+        hapiCheck(cudaEventCreateWithFlags(&dep_event, cudaEventDisableTiming));
+        hapiCheck(cudaEventRecord(dep_event, compute_instance.cuda_stream()));
+        hapiCheck(cudaStreamWaitEvent(d2h_instance.cuda_stream(), dep_event, 0));
+#else
+        // Enforce pack -> d2h dependency
+        cudaEvent_t dep_event;
+        hapiCheck(cudaEventCreateWithFlags(&dep_event, cudaEventDisableTiming));
+        hapiCheck(cudaEventRecord(dep_event, pack_instance.cuda_stream()));
+        hapiCheck(cudaStreamWaitEvent(d2h_instance.cuda_stream(), dep_event, 0));
+#endif
+
+        // Invoke D2H transfer
         Kokkos::deep_copy(d2h_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
       } else {
         atom.pack_comm_self(sendnum[iswap], list, firstrecv[iswap], pbc_flags);
@@ -382,9 +407,16 @@ void Comm::communicate(Atom &atom, bool preprocess)
 
     // All buffers copied to host, send to neighbors
     // After receiving, move buffers to device and unpack
-    // XXX: Atom needs to be updated, otherwise packing will use default stream
     atom_p = &atom;
     block_proxy[thisIndex].comm_all(CkCallbackResumeThread());
+
+#if !defined PACK_UNPACK_COMPUTE
+    // Enforce unpack -> compute dependency
+    cudaEvent_t dep_event;
+    hapiCheck(cudaEventCreateWithFlags(&dep_event, cudaEventDisableTiming));
+    hapiCheck(cudaEventRecord(dep_event, unpack_instance.cuda_stream()));
+    hapiCheck(cudaStreamWaitEvent(compute_instance.cuda_stream(), dep_event, 0));
+#endif
   }
 
   Kokkos::Profiling::popRegion();
@@ -454,12 +486,35 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
       Kokkos::fence();
     }
   } else {
+#if !defined PACK_UNPACK_COMPUTE
+    // Enforce compute -> pack dependency
+    cudaEvent_t dep_event_1;
+    hapiCheck(cudaEventCreateWithFlags(&dep_event_1, cudaEventDisableTiming));
+    hapiCheck(cudaEventRecord(dep_event_1, compute_instance.cuda_stream()));
+    hapiCheck(cudaStreamWaitEvent(pack_instance.cuda_stream(), dep_event_1, 0));
+#endif
+
     // XXX: Don't need to iterate backwards?
     for (iswap = nswap-1; iswap >= 0; iswap--) {
       int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
 
       // Pack and move buffers to host
       atom.pack_reverse(recvnum[iswap], firstrecv[iswap], buf_comms_send[iswap]);
+
+#ifdef PACK_UNPACK_COMPUTE
+      // Enforce compute -> d2h dependency
+      cudaEvent_t dep_event;
+      hapiCheck(cudaEventCreateWithFlags(&dep_event, cudaEventDisableTiming));
+      hapiCheck(cudaEventRecord(dep_event, compute_instance.cuda_stream()));
+      hapiCheck(cudaStreamWaitEvent(d2h_instance.cuda_stream(), dep_event, 0));
+#else
+      // Enforce pack -> d2h dependency
+      cudaEvent_t dep_event;
+      hapiCheck(cudaEventCreateWithFlags(&dep_event, cudaEventDisableTiming));
+      hapiCheck(cudaEventRecord(dep_event, pack_instance.cuda_stream()));
+      hapiCheck(cudaStreamWaitEvent(d2h_instance.cuda_stream(), dep_event, 0));
+#endif
+
       if (sendchare[iswap] != index) {
         Kokkos::deep_copy(d2h_instance, h_buf_comms_send[iswap], buf_comms_send[iswap]);
       }
@@ -471,6 +526,7 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
     suspend(d2h_instance);
 #endif
 
+    // TODO: Enforce dependency
     // Unpack self
     for (iswap = nswap-1; iswap >= 0; iswap--) {
       int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
