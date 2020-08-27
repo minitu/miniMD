@@ -206,6 +206,7 @@ void Block::init() {
      CkPrintf("# Create System:\n");
 
    if (!in_datafile.empty()) {
+     // TODO
      if (thisIndex == 0) {
        CkPrintf("Lammps data file not yet supported\n");
        CkExit();

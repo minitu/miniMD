@@ -200,6 +200,9 @@ int Comm::setup(MMD_float cutneigh, Atom &atom)
   firstrecv = int_1d_host_view_type("Comm::firstrecv",maxswap);
   maxsendlist = int_1d_host_view_type("Comm::maxsendlist",maxswap);
 
+  // XXX: No equivalents to sendproc_exc and recvproc_exc as they were not used
+  // in the original code
+
   for(i = 0; i < maxswap; i++) maxsendlist[i] = BUFMIN;
 
   sendlist = int_2d_lr_view_type("Comm::sendlist",maxswap,BUFMIN);

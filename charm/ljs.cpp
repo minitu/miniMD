@@ -229,6 +229,7 @@ public:
       ghost_newton = 0;
     }
 
+    // Done here since global variables can only be modified here
     if (num_steps > 0) in_ntimes = num_steps;
     if (system_size > 0) in_nx = in_ny = in_nz = system_size;
 
