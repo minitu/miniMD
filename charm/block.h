@@ -25,6 +25,9 @@ public:
   Comm* comm;
   Force* force;
 
+  // For thermo communication
+  int i;
+
   // For comms_all
   int my_iswap;
   int my_nswap;

@@ -100,11 +100,14 @@ mainmodule miniMD {
 };
 
 module block {
+  include "types.h";
+
   array [1d] Block {
     entry Block();
     entry void init();
-    entry void contCreateVelocity(double vxtot, double vytot, double vztot);
+    entry [threaded] void contCreateVelocity(double vxtot, double vytot, double vztot);
 
+    // Main code flow
     entry [threaded] void run() {
       serial "preprocess" {
         comm->exchange(atom, true);
@@ -149,6 +152,26 @@ module block {
         contribute(CkCallback(CkReductionTarget(Main, blockDone), main_proxy));
       }
     }
+
+    entry void temperature_allreduce(CkCallback cb) {
+      serial {
+        // Broadcast to all chares
+        int tag = comm->iter;
+        thisProxy.temperature_recv(tag, thermo.t_act);
+      }
+
+      for (i = 0; i < num_chares; i++) {
+        when temperature_recv[comm->iter](int ref, MMD_float t_act) serial {
+          thermo.t1 += t_act;
+        }
+      }
+
+      serial {
+        cb.send();
+      }
+    }
+
+    entry void temperature_recv(int ref, MMD_float t_act);
 
     // Non-blocking communication routines for Comm:exchange
     entry void exchange_1(int idim, CkCallback cb) {

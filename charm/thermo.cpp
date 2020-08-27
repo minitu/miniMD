@@ -34,8 +34,11 @@
 #include "force_lj.h"
 #include "integrate.h"
 #include "thermo.h"
+#include "block.decl.h"
 
-Thermo::Thermo() {}
+/* readonly */ extern CProxy_Block block_proxy;
+
+Thermo::Thermo(int index_) : index(index_) {}
 Thermo::~Thermo() {
   /*delete [] steparr;
   delete [] tmparr;
@@ -144,7 +147,8 @@ MMD_float Thermo::temperature(Atom &atom)
 
   t_act += t;
 
-  MMD_float t1;
+  t1 = 0;
+  block_proxy[index].temperature_allreduce(CkCallbackResumeThread());
   /*
   if(sizeof(MMD_float) == 4)
     MPI_Allreduce(&t_act, &t1, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);

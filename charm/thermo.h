@@ -59,7 +59,9 @@ class Thermo
     Kokkos::Cuda pack_instance;
     Kokkos::Cuda unpack_instance;
 
-    Thermo();
+    int index;
+
+    Thermo(int);
     ~Thermo();
     void setup(MMD_float, Integrate &integrate, Atom &atom, MMD_int);
     MMD_float temperature(Atom &);
@@ -73,6 +75,7 @@ class Thermo
     x_const_view_type v;
     MMD_float mass;
 
+    MMD_float t1;
     MMD_float t_act, p_act, e_act;
     MMD_float t_scale, e_scale, p_scale, mvv2e, dof_boltz;
 

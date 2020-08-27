@@ -427,8 +427,8 @@ int create_atoms(Atom &atom, int nx, int ny, int nz, double rho)
   }
 
   // TODO
-  /* check for overflows on any proc */
-  /* check that correct # of atoms were created */
+  // Check for overflows on any proc
+  // Check that correct # of atoms were created (manually checked)
 
   Kokkos::deep_copy(atom.x, atom.h_x);
   Kokkos::deep_copy(atom.v, atom.h_v);
@@ -457,11 +457,8 @@ void create_velocity_1(Atom &atom, double& vxtot, double& vytot, double& vztot)
 void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
     double vxtot, double vytot, double vztot)
 {
-  //MPI_Allreduce(&vxtot, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   vxtot /= atom.natoms;
-  //MPI_Allreduce(&vytot, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   vytot /= atom.natoms;
-  //MPI_Allreduce(&vztot, &tmp, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   vztot /= atom.natoms;
 
   for (int i = 0; i < atom.nlocal; i++) {

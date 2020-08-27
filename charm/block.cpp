@@ -54,7 +54,7 @@ extern void create_velocity_1(Atom &atom, double& vxtot, double& vytot,
 extern void create_velocity_2(double t_request, Atom &atom, Thermo &thermo,
     double vxtot, double vytot, double vztot);
 
-Block::Block() : atom(ntypes), neighbor(ntypes), integrate(), thermo(),
+Block::Block() : atom(ntypes), neighbor(ntypes), integrate(), thermo(thisIndex),
   comm(nullptr), force(nullptr) {}
 
 void Block::init() {
