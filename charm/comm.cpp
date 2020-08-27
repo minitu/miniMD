@@ -529,7 +529,6 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
     suspend(d2h_instance);
 #endif
 
-    // TODO: Enforce dependency
     // Unpack self
     for (iswap = nswap-1; iswap >= 0; iswap--) {
       int_1d_view_type list = Kokkos::subview(sendlist,iswap,Kokkos::ALL());
@@ -543,6 +542,14 @@ void Comm::reverse_communicate(Atom &atom, bool preprocess)
     // After receiving, move buffers to device and unpack
     atom_p = &atom;
     block_proxy[thisIndex].comm_rev_all(CkCallbackResumeThread());
+
+#if !defined PACK_UNPACK_COMPUTE
+    // Enforce unpack -> compute dependency
+    cudaEvent_t dep_event;
+    hapiCheck(cudaEventCreateWithFlags(&dep_event, cudaEventDisableTiming));
+    hapiCheck(cudaEventRecord(dep_event, unpack_instance.cuda_stream()));
+    hapiCheck(cudaStreamWaitEvent(compute_instance.cuda_stream(), dep_event, 0));
+#endif
   }
 
   Kokkos::Profiling::popRegion();
