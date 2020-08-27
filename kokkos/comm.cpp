@@ -51,6 +51,7 @@ Comm::Comm()
   do_safeexchange = 0;
   maxnlocal = 0;
   count = Kokkos::DualView<int*>("comm::count",1);
+  mirrors_created = false;
 }
 
 Comm::~Comm() {}
@@ -275,6 +276,14 @@ void Comm::communicate(Atom &atom)
   NVTXTracer("Comm::communicate", NVTXColor::PeterRiver);
   Kokkos::Profiling::pushRegion("Comm::communicate");
 
+#ifdef COMM_HOST_STAGE
+  if (!mirrors_created) {
+    h_buf_send = Kokkos::create_mirror_view(buf_send);
+    h_buf_recv = Kokkos::create_mirror_view(buf_recv);
+    mirrors_created = true;
+  }
+#endif
+
   int iswap;
   int pbc_flags[4];
 
@@ -295,9 +304,17 @@ void Comm::communicate(Atom &atom)
        if self, set recv buffer to send buffer */
 
       MPI_Datatype type = (sizeof(MMD_float) == 4) ? MPI_FLOAT : MPI_DOUBLE;
+#ifdef COMM_HOST_STAGE
+      Kokkos::deep_copy(h_buf_send, buf_send);
+      MPI_Sendrecv(h_buf_send.data(), comm_send_size[iswap], type, sendproc[iswap], 0,
+                   h_buf_recv.data(), comm_recv_size[iswap], type, recvproc[iswap], 0,
+                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      Kokkos::deep_copy(buf_recv, h_buf_recv);
+#else
       MPI_Sendrecv(buf_send.data(), comm_send_size[iswap], type, sendproc[iswap], 0,
                    buf_recv.data(), comm_recv_size[iswap], type, recvproc[iswap], 0,
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+#endif
 
       buf = buf_recv;
       atom.unpack_comm(recvnum[iswap], firstrecv[iswap], buf);

@@ -103,6 +103,9 @@ class Comm
 
     float_1d_view_type buf_send;                 // send buffer for all comm
     float_1d_view_type buf_recv;                 // recv buffer for all comm
+    float_1d_host_view_type h_buf_send;
+    float_1d_host_view_type h_buf_recv;
+    bool mirrors_created;
     float_1d_view_type buf;
     int maxsend;
     int maxrecv;
