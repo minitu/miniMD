@@ -61,15 +61,9 @@ void Integrate::operator() (TagInitialIntegrate, const int& i) const {
   v(i,0) += dtforce * f(i,0);
   v(i,1) += dtforce * f(i,1);
   v(i,2) += dtforce * f(i,2);
-  // TODO: Fix performance degradation due to v
-  /*
   x(i,0) += dt * v(i,0);
   x(i,1) += dt * v(i,1);
   x(i,2) += dt * v(i,2);
-  */
-  x(i,0) += dt;
-  x(i,1) += dt;
-  x(i,2) += dt;
 }
 
 void Integrate::finalIntegrate()
