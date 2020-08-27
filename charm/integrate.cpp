@@ -187,8 +187,7 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
 
       finalIntegrate();
 
-      // TODO: Support this, might require additional synchronization
-      //if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, comm);
+      if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, comm);
 
       /*
       if (index == 0) {

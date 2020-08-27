@@ -123,7 +123,6 @@ module block {
         if (neighbor.halfneigh && neighbor.ghost_newton)
           comm->reverse_communicate(atom, true);
 
-        // TODO: Contains MPI_Allreduce calls
         thermo.compute(0, atom, neighbor, force, comm);
       }
 
@@ -139,7 +138,6 @@ module block {
         if (neighbor.halfneigh && neighbor.ghost_newton)
           comm->reverse_communicate(atom, false);
 
-        // TODO: Contains MPI_Allreduce calls
         thermo.compute(-1, atom, neighbor, force, comm);
 
         // XXX: Missing performance summary and yaml output
@@ -153,6 +151,7 @@ module block {
       }
     }
 
+    // Allreduce routines for Thermo
     entry void temperature_allreduce(CkCallback cb) {
       serial {
         // Broadcast to all chares
@@ -170,8 +169,46 @@ module block {
         cb.send();
       }
     }
-
     entry void temperature_recv(int ref, MMD_float t_act);
+
+    entry void energy_allreduce(CkCallback cb) {
+      serial {
+        // Broadcast to all chares
+        int tag = comm->iter;
+        thisProxy.energy_recv(tag, thermo.e_act);
+      }
+
+      for (i = 0; i < num_chares; i++) {
+        when energy_recv[comm->iter](int ref, MMD_float e_act) serial {
+          thermo.eng += e_act;
+        }
+      }
+
+      serial {
+        cb.send();
+      }
+    }
+    entry void energy_recv(int ref, MMD_float e_act);
+
+    entry void pressure_allreduce(CkCallback cb) {
+      serial {
+        // Broadcast to all chares
+        int tag = comm->iter;
+        thisProxy.pressure_recv(tag, thermo.p_act);
+      }
+
+      for (i = 0; i < num_chares; i++) {
+        when pressure_recv[comm->iter](int ref, MMD_float p_act) serial {
+          thermo.virial += p_act;
+        }
+      }
+
+      serial {
+        cb.send();
+      }
+    }
+    entry void pressure_recv(int ref, MMD_float p_act);
+
 
     // Non-blocking communication routines for Comm:exchange
     entry void exchange_1(int idim, CkCallback cb) {

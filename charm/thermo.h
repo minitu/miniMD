@@ -75,7 +75,9 @@ class Thermo
     x_const_view_type v;
     MMD_float mass;
 
+    MMD_float eng;
     MMD_float t1;
+    MMD_float virial;
     MMD_float t_act, p_act, e_act;
     MMD_float t_scale, e_scale, p_scale, mvv2e, dof_boltz;
 

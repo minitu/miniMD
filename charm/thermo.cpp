@@ -121,8 +121,9 @@ MMD_float Thermo::energy(Atom &atom, Neighbor &neighbor, Force* force)
   }
 
   e_act *= e_scale;
-  MMD_float eng;
 
+  eng = 0;
+  block_proxy[index].energy_allreduce(CkCallbackResumeThread());
   /*
   if(sizeof(MMD_float) == 4)
     MPI_Allreduce(&e_act, &eng, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
@@ -176,8 +177,8 @@ MMD_float Thermo::pressure(MMD_float t, Force* force)
 {
   p_act = force->virial;
 
-  MMD_float virial = 0;
-
+  virial = 0;
+  block_proxy[index].pressure_allreduce(CkCallbackResumeThread());
   /*
   if(sizeof(MMD_float) == 4)
     MPI_Allreduce(&p_act, &virial, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
