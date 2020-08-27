@@ -64,6 +64,12 @@ void Block::init() {
   // Create force object
   if (in_forcetype == FORCEEAM) {
     force = (Force*) new ForceEAM(ntypes);
+    if (ghost_newton == 1) {
+      if (thisIndex == 0) {
+        CkPrintf("# EAM currently requires '--ghost_newton 0'; Exiting now.\n");
+        CkExit();
+      }
+    }
   } else if (in_forcetype == FORCELJ) {
     force = (Force*) new ForceLJ(ntypes);
   }
@@ -111,22 +117,6 @@ void Block::init() {
   force->d2h_instance = d2h_instance;
   force->pack_instance = pack_instance;
   force->unpack_instance = unpack_instance;
-
-  // Create CUDA events used to preserve dependencies between streams
-  cudaEventCreateWithFlags(&compute_event, cudaEventDisableTiming);
-  cudaEventCreateWithFlags(&comm_event, cudaEventDisableTiming);
-  atom.compute_event = compute_event;
-  atom.comm_event = comm_event;
-  neighbor.compute_event = compute_event;
-  neighbor.comm_event = comm_event;
-  integrate.compute_event = compute_event;
-  integrate.comm_event = comm_event;
-  thermo.compute_event = compute_event;
-  thermo.comm_event = comm_event;
-  comm->compute_event = compute_event;
-  comm->comm_event = comm_event;
-  force->compute_event = compute_event;
-  force->comm_event = comm_event;
 
   // Store chare index
   integrate.index = thisIndex;

@@ -59,9 +59,6 @@ class Thermo
     Kokkos::Cuda pack_instance;
     Kokkos::Cuda unpack_instance;
 
-    cudaEvent_t compute_event;
-    cudaEvent_t comm_event;
-
     Thermo();
     ~Thermo();
     void setup(MMD_float, Integrate &integrate, Atom &atom, MMD_int);

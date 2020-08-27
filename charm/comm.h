@@ -54,9 +54,6 @@ class Comm : public CBase_Comm
     Kokkos::Cuda pack_instance;
     Kokkos::Cuda unpack_instance;
 
-    cudaEvent_t compute_event;
-    cudaEvent_t comm_event;
-
     KOKKOS_INLINE_FUNCTION
     void operator() (TagExchangeSendlist, const int&  ) const;
     KOKKOS_INLINE_FUNCTION

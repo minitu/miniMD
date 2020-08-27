@@ -51,9 +51,6 @@ class Integrate
     Kokkos::Cuda pack_instance;
     Kokkos::Cuda unpack_instance;
 
-    cudaEvent_t compute_event;
-    cudaEvent_t comm_event;
-
     MMD_float dt;
     MMD_float dtforce;
     MMD_int ntimes;

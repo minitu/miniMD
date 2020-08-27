@@ -25,12 +25,6 @@ public:
   Comm* comm;
   Force* force;
 
-  cudaStream_t compute_stream;
-  cudaStream_t comm_stream;
-
-  cudaEvent_t compute_event;
-  cudaEvent_t comm_event;
-
   // For comms_all
   int my_iswap;
   int my_nswap;
