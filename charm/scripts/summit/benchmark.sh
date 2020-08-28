@@ -29,7 +29,7 @@ do
   num_chares=$((n_procs * overdecomp))
 
   echo -e "# ODF-$overdecomp\n"
-  for iter in 1 2 3 4 5
+  for iter in 1 2 3
   do
     echo -e "# Iteration $iter\n"
     exe jsrun -n$n_procs -a1 -c$ppn -g1 -K3 -r6 ./$file -c $num_chares $options -nx $nx -ny $ny -nz $nz -n $n_iters +ppn $ppn +pemap $pemap
