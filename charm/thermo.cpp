@@ -92,22 +92,26 @@ void Thermo::compute(MMD_int iflag, Atom &atom, Neighbor &neighbor, Force* force
 
   t = temperature(atom);
 
-    eng = energy(atom, neighbor, force);
+  eng = energy(atom, neighbor, force);
 
-    p = pressure(t, force);
+  p = pressure(t, force);
 
-    MMD_int istep = iflag;
+  MMD_int istep = iflag;
 
-    if(iflag == -1) istep = ntimes;
+  if(iflag == -1) istep = ntimes;
 
-    if(iflag == 0) mstat = 0;
+  if(iflag == 0) mstat = 0;
 
-    steparr[mstat] = istep;
-    tmparr[mstat] = t;
-    engarr[mstat] = eng;
-    prsarr[mstat] = p;
+  steparr[mstat] = istep;
+  tmparr[mstat] = t;
+  engarr[mstat] = eng;
+  prsarr[mstat] = p;
 
-    mstat++;
+  mstat++;
+
+  if (index == 0) {
+    CkPrintf("Timestep: %d, T: %e, U: %e P: %e\n", istep, t, eng, p);
+  }
 }
 
 /* reduced potential energy */
