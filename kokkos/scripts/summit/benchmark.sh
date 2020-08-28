@@ -24,6 +24,6 @@ echo "# MiniMD (MPI + Kokkos) Performance Benchmarking"
 
 for iter in 1 2 3
 do
-  echo -e "# Iteration $iter\n"
+  echo -e "# Run $iter\n"
   exe jsrun -n$n_procs -a1 -c1 -g1 -K3 -r6 -M "-gpu" ./$file $options -nx $nx -ny $ny -nz $nz -n $n_iters
 done
