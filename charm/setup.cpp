@@ -31,7 +31,6 @@
 
 #include <cstdio>
 #include <cmath>
-#include "mpi.h"
 #include "atom.h"
 #include "thermo.h"
 #include "types.h"
