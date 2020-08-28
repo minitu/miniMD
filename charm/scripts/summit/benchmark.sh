@@ -31,6 +31,7 @@ do
   echo -e "# ODF-$overdecomp\n"
   for iter in 1 2 3
   do
+    date
     echo -e "# Run $iter\n"
     exe jsrun -n$n_procs -a1 -c$ppn -g1 -K3 -r6 ./$file -c $num_chares $options -nx $nx -ny $ny -nz $nz -n $n_iters +ppn $ppn +pemap $pemap
   done
