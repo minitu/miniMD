@@ -32,7 +32,6 @@
 #include "stdio.h"
 #include "math.h"
 #include "force_lj.h"
-#include "hapi_nvtx.h"
 
 #ifndef VECTORLENGTH
 #define VECTORLENGTH 4
@@ -101,7 +100,6 @@ void ForceLJ::setup()
 
 void ForceLJ::compute(Atom &atom, Neighbor &neighbor, Comm &comm, int me)
 {
-  NVTXTracer("ForceLJ::compute", NVTXColor::GreenSea);
   eng_vdwl = 0;
   virial = 0;
 

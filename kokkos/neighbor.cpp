@@ -33,7 +33,6 @@
 #include "stdlib.h"
 
 #include "neighbor.h"
-#include "hapi_nvtx.h"
 
 #define FACTOR 0.999
 #define SMALL 1.0e-6
@@ -71,7 +70,6 @@ void Neighbor::dealloc() {
 
 void Neighbor::build(Atom &atom)
 {
-  NVTXTracer("Neighbor::build", NVTXColor::Clouds);
   ncalls++;
   nlocal = atom.nlocal;
   const int nall = atom.nlocal + atom.nghost;
