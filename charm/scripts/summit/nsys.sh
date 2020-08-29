@@ -2,7 +2,7 @@
 #BSUB -P csc357
 #BSUB -W 0:10
 #BSUB -nnodes 1
-#BSUB -J minimd-nsys
+#BSUB -J miniMD-charm-nsys
 
 date
 
