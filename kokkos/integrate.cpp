@@ -33,7 +33,6 @@
 #include "stdio.h"
 #include "integrate.h"
 #include "math.h"
-#include "mpi.h"
 
 Integrate::Integrate() {sort_every=20;}
 Integrate::~Integrate() {}
@@ -96,7 +95,6 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       nlocal = atom.nlocal;
 
       initialIntegrate();
-      Kokkos::fence();
 
       timer.stamp();
 
@@ -165,7 +163,6 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       Kokkos::Profiling::pushRegion("force");
       force->evflag = (n + 1) % thermo.nstat == 0;
       force->compute(atom, neighbor, comm, comm.me);
-      Kokkos::fence();
       Kokkos::Profiling::popRegion();
 
       timer.stamp(TIME_FORCE);
@@ -183,7 +180,6 @@ void Integrate::run(Atom &atom, Force* force, Neighbor &neighbor,
       Kokkos::fence();
 
       finalIntegrate();
-      Kokkos::fence();
 
       if(thermo.nstat) thermo.compute(n + 1, atom, neighbor, force, timer, comm);
     }
