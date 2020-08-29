@@ -154,60 +154,57 @@ module block {
     // Allreduce routines for Thermo
     entry void temperature_allreduce(CkCallback cb) {
       serial {
-        // Broadcast to all chares
         int tag = comm->iter;
-        thisProxy.temperature_recv(tag, thermo.t_act);
+        CkCallback allreduce_cb = CkCallback(CkIndex_Block::temperature_recv(NULL), thisProxy);
+        allreduce_cb.setRefnum(tag);
+        contribute(sizeof(MMD_float), &(thermo.t_act), (sizeof(MMD_float) == sizeof(float)) ? CkReduction::sum_float : CkReduction::sum_double, allreduce_cb);
       }
 
-      for (i = 0; i < num_chares; i++) {
-        when temperature_recv[comm->iter](int ref, MMD_float t_act) serial {
-          thermo.t1 += t_act;
-        }
+      when temperature_recv[comm->iter](CkReductionMsg* msg) serial {
+        thermo.t1 = *(MMD_float*)msg->getData();
       }
 
       serial {
         cb.send();
       }
     }
-    entry void temperature_recv(int ref, MMD_float t_act);
+    entry void temperature_recv(CkReductionMsg* msg);
 
     entry void energy_allreduce(CkCallback cb) {
       serial {
-        // Broadcast to all chares
         int tag = comm->iter;
-        thisProxy.energy_recv(tag, thermo.e_act);
+        CkCallback allreduce_cb = CkCallback(CkIndex_Block::energy_recv(NULL), thisProxy);
+        allreduce_cb.setRefnum(tag);
+        contribute(sizeof(MMD_float), &(thermo.e_act), (sizeof(MMD_float) == sizeof(float)) ? CkReduction::sum_float : CkReduction::sum_double, allreduce_cb);
       }
 
-      for (i = 0; i < num_chares; i++) {
-        when energy_recv[comm->iter](int ref, MMD_float e_act) serial {
-          thermo.eng += e_act;
-        }
+      when energy_recv[comm->iter](CkReductionMsg* msg) serial {
+        thermo.eng = *(MMD_float*)msg->getData();
       }
 
       serial {
         cb.send();
       }
     }
-    entry void energy_recv(int ref, MMD_float e_act);
+    entry void energy_recv(CkReductionMsg* msg);
 
     entry void pressure_allreduce(CkCallback cb) {
       serial {
-        // Broadcast to all chares
         int tag = comm->iter;
-        thisProxy.pressure_recv(tag, thermo.p_act);
+        CkCallback allreduce_cb = CkCallback(CkIndex_Block::pressure_recv(NULL), thisProxy);
+        allreduce_cb.setRefnum(tag);
+        contribute(sizeof(MMD_float), &(thermo.p_act), (sizeof(MMD_float) == sizeof(float)) ? CkReduction::sum_float : CkReduction::sum_double, allreduce_cb);
       }
 
-      for (i = 0; i < num_chares; i++) {
-        when pressure_recv[comm->iter](int ref, MMD_float p_act) serial {
-          thermo.virial += p_act;
-        }
+      when pressure_recv[comm->iter](CkReductionMsg* msg) serial {
+        thermo.virial = *(MMD_float*)msg->getData();
       }
 
       serial {
         cb.send();
       }
     }
-    entry void pressure_recv(int ref, MMD_float p_act);
+    entry void pressure_recv(CkReductionMsg* msg);
 
 
     // Non-blocking communication routines for Comm:exchange
