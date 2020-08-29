@@ -5,9 +5,10 @@
 #BSUB -q pbatch
 #BSUB -nnodes 3
 #BSUB -J miniMD-mpi-n3
+#BSUB -o miniMD-mpi-n3.%J
 
 # These need to be changed between submissions
-file=miniMD
+file=miniMD-hs
 n_nodes=3
 n_procs=$((n_nodes * 4))
 nx=384
