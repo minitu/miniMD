@@ -1,16 +1,16 @@
 #!/bin/bash
-#BSUB -W 10
+#BSUB -W 20
 #BSUB -P csc357
-#BSUB -nnodes 1
-#BSUB -J miniMD-charm-n1
+#BSUB -nnodes 32
+#BSUB -J miniMD-charm-n32
 
 # These need to be changed between submissions
 file=miniMD-e
-n_nodes=1
+n_nodes=64
 n_procs=$((n_nodes * 6))
-nx=192
-ny=192
-nz=192
+nx=768
+ny=768
+nz=768
 
 # Function to display commands
 exe() { echo "\$ $@" ; "$@" ; }
