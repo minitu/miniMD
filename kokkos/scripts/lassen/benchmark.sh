@@ -4,8 +4,8 @@
 #BSUB -core_isolation 2
 #BSUB -q pbatch
 #BSUB -nnodes 3
-#BSUB -J miniMD-mpi-n3
-#BSUB -o miniMD-mpi-n3.%J
+#BSUB -J miniMD-mpi-hs-n3
+#BSUB -o miniMD-mpi-hs-n3.%J
 
 # These need to be changed between submissions
 file=miniMD-hs
