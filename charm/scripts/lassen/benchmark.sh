@@ -1,10 +1,11 @@
 #!/bin/bash
 #BSUB -G asccasc
-#BSUB -W 10
+#BSUB -W 20
 #BSUB -core_isolation 2
 #BSUB -q pbatch
 #BSUB -nnodes 3
 #BSUB -J miniMD-charm-n3
+#BSUB -o miniMD-charm-n3.%J
 
 # These need to be changed between submissions
 file=miniMD-e
