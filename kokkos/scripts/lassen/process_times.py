@@ -39,4 +39,4 @@ for node_count in node_count_list:
   avg = statistics.mean(timelist)
   stdev = statistics.stdev(timelist)
 
-  writer.writerow([str(node_count * gpu_count), str(avg), str(stdev)])
+  writer.writerow([str(node_count * gpu_count) + "\\n(" + str(node_count) + ")", str(avg), str(stdev)])

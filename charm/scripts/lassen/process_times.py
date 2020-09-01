@@ -67,4 +67,4 @@ for node_count in node_count_list:
   odf_8_avg = statistics.mean(odf_8_times)
   odf_8_stdev = statistics.stdev(odf_8_times)
 
-  writer.writerow([str(node_count * gpu_count), str(odf_1_avg), str(odf_1_stdev), str(odf_2_avg), str(odf_2_stdev), str(odf_4_avg), str(odf_4_stdev), str(odf_8_avg), str(odf_8_stdev)])
+  writer.writerow([str(node_count * gpu_count) + "\\n(" + str(node_count) + ")", str(odf_1_avg), str(odf_1_stdev), str(odf_2_avg), str(odf_2_stdev), str(odf_4_avg), str(odf_4_stdev), str(odf_8_avg), str(odf_8_stdev)])
