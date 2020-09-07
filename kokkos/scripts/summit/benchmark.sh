@@ -2,10 +2,10 @@
 #BSUB -W 10
 #BSUB -P csc357
 #BSUB -nnodes 1
-#BSUB -J miniMD-mpi-n1
+#BSUB -J miniMD-mpi-hs-n1
 
 # These need to be changed between submissions
-file=miniMD
+file=miniMD-hs
 n_nodes=1
 n_procs=$((n_nodes * 6))
 nx=192
