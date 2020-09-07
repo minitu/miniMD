@@ -9,10 +9,10 @@ CUDA_LIB = $(CUDA_PATH)/lib64
 NVCC_WRAPPER = $(KOKKOS_PATH)/bin/nvcc_wrapper
 OPTS = -O3
 
-CHARM_PATH = $(HOME)/work/charm
+CHARM_PATH = $(HOME)/charm
 CHARMC = $(CHARM_PATH)/bin/charmc -c++ $(NVCC_WRAPPER) $(OPTS)
 CHARM_LD = $(CHARM_PATH)/bin/charmc $(OPTS)
-CHARM_INC = $(HOME)/work/charm/include
+CHARM_INC = $(CHARM_PATH)/include
 
 TARGET = miniMD
 
